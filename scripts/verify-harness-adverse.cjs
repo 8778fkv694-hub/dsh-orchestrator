@@ -34,8 +34,13 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     answer = 'none'; await call('orch_reconcile', { run: s.id }, true);
     s = await call('orch_status', { run: s.id }); assert.equal(s.status, 'cancel-requested'); assert.equal(s.active.operation, operation);
     answer = 'stopped'; s = await call('orch_reconcile', { run: s.id }); assert.equal(s.status, 'cancelled');
+    answer = 'confirm'; s = await call('orch_create', { definition }); s = await call('orch_next', { run: s.id });
+    fs.writeFileSync(path.join(root, 'note.md'), 'project-ready');
+    s = await call('orch_cancel', { run: s.id }); assert.equal(s.status, 'cancel-requested');
+    answer = 'verified'; s = await call('orch_reconcile', { run: s.id }); assert.equal(s.status, 'cancelled');
+    await call('orch_next', { run: s.id }, true);
     await f.dispose(); fibers.pop(); assert.equal(ctx.tools.schemas(agent).filter(t => t.name.startsWith('orch_')).length, 0);
     removeAnswerer(); detach();
-    console.log(JSON.stringify({ status: 'PASS', layer: 'installed-harness-runtime-with-synthetic-answers', checks: ['rejected-intent', 'no-answer', 'missing-delivery', 'cancel-request-unknown', 'no-advance', 'no-answer-reconciliation', 'confirmed-stopped', 'unregister'], calls: serial, hostVersion: req('@deepseek-ai/dsh-tools/package.json').version, modelCalls: 0, actualGUIAdversePaths: 'NOT_RUN' }));
+    console.log(JSON.stringify({ status: 'PASS', layer: 'installed-harness-runtime-with-synthetic-answers', checks: ['rejected-intent', 'no-answer', 'missing-delivery', 'cancel-request-unknown', 'no-advance', 'no-answer-reconciliation', 'confirmed-stopped', 'cancel-then-verified-stays-cancelled', 'unregister'], calls: serial, hostVersion: req('@deepseek-ai/dsh-tools/package.json').version, modelCalls: 0, actualGUIAdversePaths: 'NOT_RUN' }));
   } finally { for (const f of fibers.reverse()) await f.dispose(); fs.rmSync(root, { recursive: true, force: true }); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -36,3 +36,7 @@ npm test；npm run demo；npm pack。运行时探针需使用目标宿主的Node
 剩余界面反例的具体方案见[补充验收卡](GUI_ADVERSE_CARD.md)；原3任务额度已用完，执行前需新增明确授权。
 
 清理：验收宿主已停止，仅从临时验收profile移除测试插件；回读确认三份运行记录仍在。原有用户profile未改。此为宿主停止后的profile移除，不能代称活跃GUI内卸载验证。
+
+## 取消后对账修复
+
+复核发现：取消请求后，若原动作实际已完成并被对账为verified，旧代码误将状态设为ready，可能继续推进已取消的管线。定向反例先在旧实现失败；修复后保留产物收据但状态为cancelled。新版本[29项测试](../../evidence/2026-10-30-cancellation-fix/node-tests.tap)通过，实际安装的Harness运行时[15次工具调用夹具](../../evidence/2026-10-30-cancellation-fix/runtime.json)覆盖该反例。此前三条真实界面场景运行的代码是66d252f，修复后尚未做真实界面重验。

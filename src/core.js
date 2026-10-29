@@ -148,7 +148,7 @@ export class Orchestrator {
       if (!['waiting-action', 'cancel-requested'].includes(s.status) || s.active?.operation !== operation || human?.operation !== operation || human.answer !== decision) fail('human reconciliation required');
       if (decision === 'verified') {
         const n = s.definition.nodes[s.index]; const evidence = this.prove(n.proofs, s.active.baseline);
-        s.receipts.push({ node: n.id, operation, evidence, recovered: true }); s.index++; s.status = 'ready';
+        s.receipts.push({ node: n.id, operation, evidence, recovered: true }); s.index++; s.status = s.status === 'cancel-requested' ? 'cancelled' : 'ready';
       } else if (decision === 'stopped') s.status = 'cancelled';
       else fail('unsupported reconciliation');
       this.event(s, 'human-reconciled', { operation, decision, human: clone(human) }); s.active = null;

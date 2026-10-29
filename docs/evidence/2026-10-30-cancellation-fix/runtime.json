@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "layer": "installed-harness-runtime-with-synthetic-answers",
+  "hostVersion": "0.2.1-rc.3",
+  "calls": 15,
+  "modelCalls": 0,
+  "checks": [
+    "cancel-then-verified-stays-cancelled",
+    "reject",
+    "no-answer",
+    "missing-delivery",
+    "cancel-request-unknown",
+    "confirmed-stopped",
+    "unregister"
+  ],
+  "coreSha256": "07bb34d1c8ba5d1a884b45d9657cced5fb2bf019d2fc0e790f34a37e70e64132",
+  "adverseScriptSha256": "1537f4c2c7ee25c2d11db9584eeb43f2c113f38547e3abf2755579cae4ef9ded",
+  "realGuiNewVersion": "NOT_RUN"
+}
