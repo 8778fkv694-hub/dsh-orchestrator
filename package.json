@@ -16,8 +16,11 @@
     "src",
     "cordis.patch.yml",
     "examples",
+    "scripts",
+    "docs",
     "README.md",
     "README.en.md",
+    "STATUS.md",
     "LICENSE"
   ],
   "dsh": {

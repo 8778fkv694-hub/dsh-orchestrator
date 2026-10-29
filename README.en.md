@@ -4,11 +4,11 @@
 
 Turn confirmed intent into observable, verifiable, recoverable pipelines. A host-independent core, delivered first as a DeepSeek Harness plugin.
 
-**Developer preview.** Runnable core and adapter code exists. Real-model and human end-to-end acceptance inside Harness is still pending. See [status](STATUS.md) and [verification](docs/sdlc/test/verification.md).
+**Developer preview.** Runnable core and adapter code exists. Three primary real-model GUI scenarios passed; rejection and cancellation paths in the GUI remain to be accepted. See [status](STATUS.md) and [verification](docs/sdlc/test/verification.md).
 
 ## Principles
 
-Human words are input. AI clarifies and restates a candidate; only human confirmation establishes formal Intent. Runs pin definition snapshots. The host retains control of tool execution and permissions. Persist action IDs before dispatch, inspect unknown effects before recovery, and verify declared artifacts independently of model completion claims.
+Human words are input. AI clarifies and restates a candidate; only human confirmation establishes formal Intent. Runs pin definition snapshots. The host retains control of tool execution and permissions. The `harness.userQuestions` source proves routing through the question channel, not who physically clicked; use additional identity and audit controls when delegated actions must be distinguished. Persist action IDs before dispatch, inspect unknown effects before recovery, and verify declared artifacts independently of model completion claims.
 
 The method draws on Digital Employee's pipeline practice. This is an original implementation with no dependency on that application. [Pre-flight](https://github.com/8778fkv694-hub/pre-flight) provides the project guide, Intent, Spec and Plan; pipeline references pin their content hashes.
 

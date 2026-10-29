@@ -1,0 +1,43 @@
+{
+  "scenario": "restart-and-reconcile",
+  "pluginCommit": "66d252f23894bf5ed5aa842325a85ba4923adb53",
+  "hostVersion": "0.2.1-rc.3",
+  "runId": "4fccf3ea-f8fa-4adb-92a4-a5707b5e4877",
+  "operationId": "b1a973cf-ede7-4ac5-97df-a49042eb705b",
+  "beforeRestart": {
+    "run": "4fccf3ea-f8fa-4adb-92a4-a5707b5e4877",
+    "operation": "b1a973cf-ede7-4ac5-97df-a49042eb705b",
+    "status": "waiting-action",
+    "events": [
+      "created",
+      "action-issued"
+    ],
+    "sha256": "f81852806c60393a57f9cf936598078e98982b21f823319fcb816b47c2224d3c",
+    "mtimeNs": 1793314318576957261,
+    "size": 14,
+    "revision": 1
+  },
+  "afterRestart": {
+    "run": "4fccf3ea-f8fa-4adb-92a4-a5707b5e4877",
+    "operation": "b1a973cf-ede7-4ac5-97df-a49042eb705b",
+    "status": "waiting-action",
+    "events": [
+      "created",
+      "action-issued"
+    ],
+    "sha256": "f81852806c60393a57f9cf936598078e98982b21f823319fcb816b47c2224d3c",
+    "mtimeNs": 1793314318576957261,
+    "size": 14,
+    "revision": 1
+  },
+  "finalStatus": "done",
+  "finalEvents": [
+    "created",
+    "action-issued",
+    "human-reconciled",
+    "done"
+  ],
+  "reconcileActor": "Codex clicked verified under explicit user delegation",
+  "intentConfirmationActor": "user directly interacted with the Harness question card",
+  "caveat": "Harness UI source does not distinguish a human click from delegated computer-use. The model incorrectly described the delegated click as owner personally clicking; this record corrects that claim."
+}

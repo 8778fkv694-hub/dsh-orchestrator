@@ -1,0 +1,30 @@
+{
+  "scenario": "real-model-human-gate-file-delivery",
+  "harnessToolVersion": "0.2.1-rc.3",
+  "pluginCommit": "66d252f23894bf5ed5aa842325a85ba4923adb53",
+  "provider": "opencode-go",
+  "model": "deepseek-v4.1-flash",
+  "runId": "25a280e4-c312-45dd-bfe6-06696d6e66b5",
+  "definitionHash": "774cc3fe26b3c930fb4f088a0c2f3bb1d35c29c934e8222fc85b50ab9df30012",
+  "confirmationSource": "harness.userQuestions",
+  "intentConfirmed": true,
+  "humanGateDecision": "confirm",
+  "status": "done",
+  "steps": 3,
+  "eventTypes": [
+    "created",
+    "action-issued",
+    "action-verified",
+    "gate",
+    "human-decision",
+    "checked",
+    "done"
+  ],
+  "artifact": {
+    "name": "note.md",
+    "bytes": 14,
+    "sha256": "e5f63a60e134b90a4013abf1f2e460b4cc8eef720fc1fd506d1c3521285b591c",
+    "expectedTextPresent": true
+  },
+  "limits": "First mixed scenario only; restart, script-only and adverse paths pending."
+}

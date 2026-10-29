@@ -1,0 +1,22 @@
+{
+  "scenario": "script-node-and-standalone-driver",
+  "pluginCommit": "66d252f23894bf5ed5aa842325a85ba4923adb53",
+  "hostVersion": "0.2.1-rc.3",
+  "runId": "bb4b798b-71a0-41a1-8370-27fb75457902",
+  "confirmationActor": "Codex clicked confirm under explicit user delegation",
+  "status": "done",
+  "events": [
+    "created",
+    "action-issued",
+    "action-verified",
+    "done"
+  ],
+  "artifact": {
+    "name": "sum.txt",
+    "bytes": 10,
+    "sha256": "82a984dda4159e2e94a3fd7b93727b2cba1a209537257f0df0d3d2f6fbb35a9b",
+    "independentlyParsedSum": 42
+  },
+  "standaloneDriver": "The local demo code has no model invocation; host command output reported modelCalls=0. The surrounding Harness task did call a model.",
+  "scope": "Isolated test only; confirmation fixture in standalone demo is synthetic."
+}
