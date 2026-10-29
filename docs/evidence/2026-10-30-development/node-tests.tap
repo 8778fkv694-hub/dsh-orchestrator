@@ -1,0 +1,182 @@
+
+> dsh-orchestrator@0.1.0-alpha.1 test
+> node --test
+
+TAP version 13
+# Subtest: full lifecycle verifies independent artifacts
+ok 1 - full lifecycle verifies independent artifacts
+  ---
+  duration_ms: 55.950209
+  type: 'test'
+  ...
+# Subtest: raw or mismatched intent cannot create a run
+ok 2 - raw or mismatched intent cannot create a run
+  ---
+  duration_ms: 6.66675
+  type: 'test'
+  ...
+# Subtest: definition schema rejects unknown nodes fields versions paths and numbers
+ok 3 - definition schema rejects unknown nodes fields versions paths and numbers
+  ---
+  duration_ms: 0.216417
+  type: 'test'
+  ...
+# Subtest: definition and receipt returned to caller are detached snapshots
+ok 4 - definition and receipt returned to caller are detached snapshots
+  ---
+  duration_ms: 18.662542
+  type: 'test'
+  ...
+# Subtest: another session cannot inspect or mutate runs
+ok 5 - another session cannot inspect or mutate runs
+  ---
+  duration_ms: 20.765292
+  type: 'test'
+  ...
+# Subtest: missing, stale operation and unchanged files cannot advance
+ok 6 - missing, stale operation and unchanged files cannot advance
+  ---
+  duration_ms: 54.872459
+  type: 'test'
+  ...
+# Subtest: wrong evidence and missing final delivery refuse done
+ok 7 - wrong evidence and missing final delivery refuse done
+  ---
+  duration_ms: 36.997208
+  type: 'test'
+  ...
+# Subtest: restart returns original action and cannot reissue it
+ok 8 - restart returns original action and cannot reissue it
+  ---
+  duration_ms: 14.609833
+  type: 'test'
+  ...
+# Subtest: pause and resume preserve unknown effect action
+ok 9 - pause and resume preserve unknown effect action
+  ---
+  duration_ms: 25.570958
+  type: 'test'
+  ...
+# Subtest: active cancellation remains requested until human reconciliation
+ok 10 - active cancellation remains requested until human reconciliation
+  ---
+  duration_ms: 26.042417
+  type: 'test'
+  ...
+# Subtest: recovery with verified output advances only with evidence
+ok 11 - recovery with verified output advances only with evidence
+  ---
+  duration_ms: 25.999792
+  type: 'test'
+  ...
+# Subtest: gate rejects forged or stale decisions; human rejection cancels
+ok 12 - gate rejects forged or stale decisions; human rejection cancels
+  ---
+  duration_ms: 18.7235
+  type: 'test'
+  ...
+# Subtest: accepted gate continues without repeating confirmation
+ok 13 - accepted gate continues without repeating confirmation
+  ---
+  duration_ms: 25.279458
+  type: 'test'
+  ...
+# Subtest: symlink evidence, state directory, and state files refused
+ok 14 - symlink evidence, state directory, and state files refused
+  ---
+  duration_ms: 7.061583
+  type: 'test'
+  ...
+# Subtest: write failure cannot emit an unsaved work order
+ok 15 - write failure cannot emit an unsaved work order
+  ---
+  duration_ms: 7.961041
+  type: 'test'
+  ...
+# Subtest: concurrent writer lock fails without changing snapshot
+ok 16 - concurrent writer lock fails without changing snapshot
+  ---
+  duration_ms: 7.861625
+  type: 'test'
+  ...
+# Subtest: preflight references pin exact file contents
+ok 17 - preflight references pin exact file contents
+  ---
+  duration_ms: 8.265459
+  type: 'test'
+  ...
+# Subtest: replacing the state directory with a symlink after construction is refused
+ok 18 - replacing the state directory with a symlink after construction is refused
+  ---
+  duration_ms: 7.706708
+  type: 'test'
+  ...
+# Subtest: SIGKILL after action issuance preserves operation without replay
+ok 19 - SIGKILL after action issuance preserves operation without replay
+  ---
+  duration_ms: 160.128542
+  type: 'test'
+  ...
+# Subtest: trusted script driver completes without a model
+ok 20 - trusted script driver completes without a model
+  ---
+  duration_ms: 64.853125
+  type: 'test'
+  ...
+# Subtest: driver never replays failed executor after restart
+ok 21 - driver never replays failed executor after restart
+  ---
+  duration_ms: 42.20425
+  type: 'test'
+  ...
+# Subtest: driver forwards cancellation and does not certify completion
+ok 22 - driver forwards cancellation and does not certify completion
+  ---
+  duration_ms: 50.926208
+  type: 'test'
+  ...
+# Subtest: adapter calls host question seam with full restatement and exact definition before creation
+ok 23 - adapter calls host question seam with full restatement and exact definition before creation
+  ---
+  duration_ms: 26.37325
+  type: 'test'
+  ...
+# Subtest: rejection/no provider/no answer never creates an accepted run
+ok 24 - rejection/no provider/no answer never creates an accepted run
+  ---
+  duration_ms: 4.754458
+  type: 'test'
+  ...
+# Subtest: plugin full mixed lifecycle with evidence, gate and final delivery
+ok 25 - plugin full mixed lifecycle with evidence, gate and final delivery
+  ---
+  duration_ms: 123.959958
+  type: 'test'
+  ...
+# Subtest: plugin refuses missing caller and cross-session status
+ok 26 - plugin refuses missing caller and cross-session status
+  ---
+  duration_ms: 12.801333
+  type: 'test'
+  ...
+# Subtest: plugin unload aborts outstanding wait without accepting candidate
+ok 27 - plugin unload aborts outstanding wait without accepting candidate
+  ---
+  duration_ms: 3.943458
+  type: 'test'
+  ...
+# Subtest: no answer at human gate leaves pending gate and original operation
+ok 28 - no answer at human gate leaves pending gate and original operation
+  ---
+  duration_ms: 21.30225
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 28
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 476.416792

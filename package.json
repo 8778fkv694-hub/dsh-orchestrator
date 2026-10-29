@@ -1,0 +1,36 @@
+{
+  "name": "dsh-orchestrator",
+  "version": "0.1.0-alpha.1",
+  "description": "Evidence-driven pipelines for DeepSeek Harness with a portable core",
+  "type": "module",
+  "main": "src/plugin.js",
+  "exports": {
+    ".": "./src/plugin.js",
+    "./core": "./src/core.js",
+    "./driver": "./src/driver.js"
+  },
+  "bin": {
+    "orch": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "examples",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo": "node examples/script-demo.js"
+  },
+  "license": "MIT"
+}

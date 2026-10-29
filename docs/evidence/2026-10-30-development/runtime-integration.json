@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "hostVersion": "0.2.1-rc.3",
+  "layer": "installed Harness runtime with fixture agent/answers",
+  "tools": 10,
+  "calls": 6,
+  "modelCalls": 0,
+  "humanE2E": "NOT_RUN",
+  "cleanup": "tools unregistered after plugin unload"
+}

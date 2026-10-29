@@ -1,0 +1,6 @@
+- insert:
+    - id: evidence-orchestrator
+      name: dsh-orchestrator
+      config:
+        # Set an explicit absolute project path in your profile override before use.
+        workspace: ''

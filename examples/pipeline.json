@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "A verified project note",
+  "intent": "Create a short project note, ask me before acceptance, and check the final artifact.",
+  "nodes": [
+    { "id": "draft", "type": "task", "mode": "agent", "instruction": "Use your authorized file tool to create note.md containing project-ready. Use a new workspace so the note is not pre-existing.", "proofs": [{ "path": "note.md", "contains": "project-ready" }] },
+    { "id": "review", "type": "gate", "question": "请阅读note.md。是否接受本次交付？ / Have you reviewed and accepted note.md?" },
+    { "id": "verify", "type": "check", "proofs": [{ "path": "note.md", "contains": "project-ready" }] }
+  ],
+  "deliveries": [{ "path": "note.md", "contains": "project-ready" }]
+}

@@ -1,0 +1,22 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { Orchestrator } from '../src/core.js';
+test('SIGKILL after action issuance preserves operation without replay', { timeout: 5000 }, async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-crash-'));
+  let child; t.after(() => { child?.kill('SIGKILL'); fs.rmSync(root, { force: true, recursive: true }); });
+  const coreUrl = new URL('../src/core.js', import.meta.url).href;
+  const source = `import fs from 'node:fs'; import { Orchestrator, digest } from ${JSON.stringify(coreUrl)}; const d={version:1,name:'crash',intent:'fixture',nodes:[{id:'write',type:'task',mode:'script',instruction:'write',proofs:[{path:'out',contains:'ok'}]}],deliveries:[{path:'out',contains:'ok'}]}; const e=new Orchestrator(process.argv[1]); let s=e.create(d,'fixture',{answer:'confirm',definitionHash:digest(d),source:'test-fixture'}); s=e.next(s.id,s.owner); fs.writeFileSync(process.argv[1]+'/out','ok'); console.log(JSON.stringify({id:s.id,operation:s.active.operation})); setInterval(()=>{},1000);`;
+  child = spawn(process.execPath, ['--input-type=module', '-e', source, root], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const errorExit = once(child, 'error'); errorExit.catch(() => {});
+  const [chunk] = await once(child.stdout, 'data'); const emitted = JSON.parse(chunk.toString());
+  const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited;
+  const e = new Orchestrator(root), restored = e.recover(emitted.id, 'fixture');
+  assert.equal(restored.active.operation, emitted.operation); assert.equal(restored.status, 'waiting-action'); assert.throws(() => e.next(emitted.id, 'fixture'));
+  const reconciled = e.reconcile(emitted.id, 'fixture', emitted.operation, 'verified', { operation: emitted.operation, answer: 'verified', source: 'test-fixture' });
+  assert.equal(reconciled.status, 'ready'); assert.equal(e.next(emitted.id, 'fixture').status, 'done');
+});
