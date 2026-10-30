@@ -192,50 +192,88 @@ export function loadRuns(workspace) {
  */
 export function loadPipelines(workspace) {
   const root = assertWorkspace(workspace);
-  const dirs = [path.join(root, 'pipelines'), path.join(root, '.orchestrator', 'pipelines')];
+  const bases = [path.join(root, 'pipelines'), path.join(root, '.orchestrator', 'pipelines')];
   const pipelines = [];
   const warnings = [];
-  for (const dir of dirs) {
-    let names;
+  for (const base of bases) {
+    let baseStat;
     try {
-      const st = fs.lstatSync(dir);
-      if (st.isSymbolicLink() || !st.isDirectory()) {
-        warnings.push(`${path.relative(root, dir)} 不是安全的普通目录，已忽略`);
-        continue;
-      }
-      names = fs.readdirSync(dir);
+      baseStat = fs.lstatSync(base);
     } catch (error) {
       if (error.code === 'ENOENT') continue;
-      warnings.push(`无法读取 ${path.relative(root, dir)}：${error.message}`);
+      warnings.push(`无法读取 ${path.relative(root, base)}：${error.message}`);
       continue;
     }
-    for (const name of names) {
-      if (!name.endsWith('.json')) continue;
-      const file = path.join(dir, name);
-      const rel = path.relative(root, file);
-      try {
-        const st = fs.lstatSync(file);
-        if (st.isSymbolicLink() || !st.isFile()) throw new Error('拒绝符号链接或非普通文件');
-        if (st.size > MAX_READ) throw new Error('定义超过 4MB 上限');
-        const definition = validate(JSON.parse(fs.readFileSync(file, 'utf8')));
-        pipelines.push({
-          slug: name.slice(0, -'.json'.length),
-          file: rel,
-          name: definition.name,
-          intent: definition.intent,
-          nodes: definition.nodes.length,
-          deliveries: definition.deliveries.length,
-          references: Object.keys(definition.references ?? {}),
-          updatedAt: new Date(st.mtimeMs).toISOString(),
-          definition
-        });
-      } catch (error) {
-        warnings.push(`忽略 ${rel}：${error.message}`);
-      }
+    if (baseStat.isSymbolicLink() || !baseStat.isDirectory()) {
+      warnings.push(`${path.relative(root, base)} 不是安全的普通目录，已忽略`);
+      continue;
     }
+    const metadata = readPipelineIndex(root, base, warnings);
+    const walk = (dir, depth) => {
+      if (depth > 2) return;
+      let names;
+      try {
+        names = fs.readdirSync(dir).sort();
+      } catch (error) {
+        warnings.push(`无法读取 ${path.relative(root, dir)}：${error.message}`);
+        return;
+      }
+      for (const name of names) {
+        const file = path.join(dir, name);
+        const rel = path.relative(root, file);
+        try {
+          const st = fs.lstatSync(file);
+          if (st.isSymbolicLink()) { warnings.push(`忽略符号链接 ${rel}`); continue; }
+          if (st.isDirectory()) { walk(file, depth + 1); continue; }
+          if (!name.endsWith('.json')) continue;
+          if (name === 'index.json' && dir === base) continue;
+          if (!st.isFile()) continue;
+          if (st.size > MAX_READ) throw new Error('定义超过 4MB 上限');
+          const definition = validate(JSON.parse(fs.readFileSync(file, 'utf8')));
+          const relToBase = path.relative(base, file).split(path.sep).join('/');
+          const meta = metadata.get(relToBase) ?? metadata.get(name) ?? {};
+          const subdir = path.dirname(relToBase);
+          pipelines.push({
+            slug: name.slice(0, -'.json'.length),
+            file: rel,
+            category: typeof meta.category === 'string' && meta.category.trim() ? meta.category.trim() : subdir && subdir !== '.' ? subdir.split('/')[0] : '未分类',
+            tags: Array.isArray(meta.tags) ? meta.tags.filter(tag => typeof tag === 'string').slice(0, 8) : [],
+            pinned: meta.pinned === true,
+            name: definition.name,
+            intent: definition.intent,
+            nodes: definition.nodes.length,
+            deliveries: definition.deliveries.length,
+            references: Object.keys(definition.references ?? {}),
+            updatedAt: new Date(st.mtimeMs).toISOString(),
+            definition
+          });
+        } catch (error) {
+          warnings.push(`忽略 ${rel}：${error.message}`);
+        }
+      }
+    };
+    walk(base, 0);
   }
-  pipelines.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+  pipelines.sort((a, b) => a.category.localeCompare(b.category, 'zh-Hans-CN') || a.name.localeCompare(b.name, 'zh-Hans-CN'));
   return { pipelines, warnings };
+}
+
+function readPipelineIndex(root, base, warnings) {
+  const file = path.join(base, 'index.json');
+  const map = new Map();
+  try {
+    const st = fs.lstatSync(file);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_READ) return map;
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const rows = Array.isArray(raw) ? raw : Array.isArray(raw?.pipelines) ? raw.pipelines : [];
+    for (const row of rows) {
+      if (!row || typeof row !== 'object' || typeof row.file !== 'string') continue;
+      map.set(row.file.replace(/^\\/, ''), row);
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') warnings.push(`忽略 ${path.relative(root, file)}：${error.message}`);
+  }
+  return map;
 }
 
 /**
@@ -402,6 +440,20 @@ function runSnapshot(workspace, readOnly) {
   const { runs, warnings } = loadRuns(workspace);
   const registry = loadPipelines(workspace);
   const outputs = listOutputs(workspace);
+  const usage = new Map();
+  for (const state of runs) {
+    const key = state.definition.name;
+    const last = state.events[state.events.length - 1]?.at ?? null;
+    const current = usage.get(key) ?? { count: 0, lastRunAt: null };
+    current.count += 1;
+    if (last && (!current.lastRunAt || last > current.lastRunAt)) current.lastRunAt = last;
+    usage.set(key, current);
+  }
+  for (const pipeline of registry.pipelines) {
+    const current = usage.get(pipeline.name);
+    pipeline.runCount = current?.count ?? 0;
+    pipeline.lastRunAt = current?.lastRunAt ?? null;
+  }
   return {
     generatedAt: new Date().toISOString(),
     workspace,
@@ -462,15 +514,31 @@ const APP_JS = String.raw`(function () {
   var boot = JSON.parse(document.getElementById('boot').textContent);
   var token = boot.token;
   var snapshot = boot.snapshot;
+  var settingsKey = 'orch-dashboard-v1';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(settingsKey) || '{}') || {}; } catch (e) { saved = {}; }
   var selectedRunId = null;
   var selectedPipelineFile = null;
+  var selectedOutputPath = null;
   var runDetail = null;
-  var view = 'board';
-  var filter = 'all';
+  var view = ['board', 'records', 'outputs'].indexOf(saved.view) >= 0 ? saved.view : 'board';
+  var filter = ['all', 'needs', 'active', 'done', 'cancelled'].indexOf(saved.filter) >= 0 ? saved.filter : 'all';
   var searchTerm = '';
+  var runSort = saved.runSort || 'latest';
+  var runGroup = saved.runGroup || 'status';
+  var pipelineSort = saved.pipelineSort || 'category';
+  var pipelineGrouped = saved.pipelineGrouped !== false;
+  var outputSort = saved.outputSort || 'latest';
+  var autoFollow = saved.autoFollow !== false;
+  var pins = saved.pins && typeof saved.pins === 'object' ? saved.pins : { runs: {}, pipelines: {} };
+  if (!pins.runs) pins.runs = {};
+  if (!pins.pipelines) pins.pipelines = {};
+  var collapsedGroups = Array.isArray(saved.collapsedGroups) ? saved.collapsedGroups : [];
+  var page = { board: Number(saved.pageBoard) || 30, records: Number(saved.pageRecords) || 25, outputs: Number(saved.pageOutputs) || 24 };
   var live = false;
   var pollTimer = null;
   var evtSource = null;
+  var connectionWarned = false;
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -587,6 +655,152 @@ const APP_JS = String.raw`(function () {
     return (snapshot.pipelines || []).filter(function (pipe) { return matches(pipe.name + ' ' + pipe.intent + ' ' + pipe.file); });
   }
 
+  function persistSettings() {
+    try {
+      localStorage.setItem(settingsKey, JSON.stringify({
+        view, filter, runSort, runGroup, pipelineSort, pipelineGrouped, outputSort, autoFollow, pins, collapsedGroups,
+        pageBoard: page.board, pageRecords: page.records, pageOutputs: page.outputs
+      }));
+    } catch (e) { /* localStorage may be unavailable */ }
+  }
+  function setSetting(key, value) {
+    if (key === 'view') view = value;
+    else if (key === 'filter') filter = value;
+    else if (key === 'runSort') runSort = value;
+    else if (key === 'runGroup') runGroup = value;
+    else if (key === 'pipelineSort') pipelineSort = value;
+    else if (key === 'outputSort') outputSort = value;
+    persistSettings();
+    render();
+  }
+  function isPinned(kind, key) { return pins[kind] && pins[kind][key] === true; }
+  function togglePin(kind, key, event) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    pins[kind] = pins[kind] || {};
+    if (pins[kind][key]) delete pins[kind][key];
+    else pins[kind][key] = true;
+    persistSettings();
+    render();
+  }
+  function pipelinePinned(pipe) { return pipe.pinned === true || isPinned('pipelines', pipe.file); }
+  function runPinned(run) { return isPinned('runs', run.id); }
+  function pinButton(kind, key, pinned, label) {
+    return '<button type="button" class="pinBtn' + (pinned ? ' pinned' : '') + '" aria-label="' + esc((pinned ? '取消置顶 ' : '置顶 ') + label) + '" title="' + esc(pinned ? '取消置顶' : '置顶') + '" data-pin-kind="' + esc(kind) + '" data-pin-key="' + esc(key) + '">' + (pinned ? '★' : '☆') + '</button>';
+  }
+  function sortedPipelines() {
+    var list = filteredPipelines().slice();
+    list.sort(function (a, b) {
+      var pinDiff = (pipelinePinned(b) ? 1 : 0) - (pipelinePinned(a) ? 1 : 0);
+      if (pinDiff) return pinDiff;
+      if (pipelineSort === 'latest') return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+      if (pipelineSort === 'mostUsed') {
+        var diff = (b.runCount || 0) - (a.runCount || 0);
+        if (diff) return diff;
+        return String(b.lastRunAt || b.updatedAt || '').localeCompare(String(a.lastRunAt || a.updatedAt || ''));
+      }
+      if (pipelineSort === 'name') return String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+      return String(a.category || '未分类').localeCompare(String(b.category || '未分类'), 'zh-Hans-CN') || String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+    });
+    return list;
+  }
+  function groupPipelines(list) {
+    var groups = [];
+    var byCategory = {};
+    list.forEach(function (pipe) {
+      var key = pipelineGrouped ? (pipe.category || '未分类') : '全部管线';
+      if (!byCategory[key]) { byCategory[key] = { title: key, items: [] }; groups.push(byCategory[key]); }
+      byCategory[key].items.push(pipe);
+    });
+    return groups;
+  }
+  function runStatusRank(status) {
+    return { 'waiting-human': 0, ready: 1, 'waiting-action': 2, paused: 3, 'cancel-requested': 4, done: 5, cancelled: 6 }[status] ?? 9;
+  }
+  function pipelineUsage(name) {
+    var pipe = (snapshot.pipelines || []).filter(function (p) { return p.name === name; })[0];
+    return pipe ? { runCount: pipe.runCount || 0, lastRunAt: pipe.lastRunAt } : { runCount: 0, lastRunAt: null };
+  }
+  function sortedRuns() {
+    var list = filteredRuns().slice();
+    list.sort(function (a, b) {
+      var pinDiff = (runPinned(b) ? 1 : 0) - (runPinned(a) ? 1 : 0);
+      if (pinDiff) return pinDiff;
+      if (runSort === 'mostUsed') {
+        var diff = pipelineUsage(b.name).runCount - pipelineUsage(a.name).runCount;
+        if (diff) return diff;
+        return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+      }
+      if (runSort === 'name') return String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+      if (runSort === 'status') return runStatusRank(a.status) - runStatusRank(b.status) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+      return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+    });
+    return list;
+  }
+  function timeBucket(iso) {
+    if (!iso) return '更早';
+    var t = new Date(iso).getTime();
+    if (!isFinite(t)) return '更早';
+    var now = new Date();
+    var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    if (t >= startToday) return '今天';
+    if (t >= startToday - 6 * 86400000) return '近 7 天';
+    return '更早';
+  }
+  function groupRuns(list) {
+    var groups = [];
+    var map = {};
+    var push = function (title, run) {
+      if (!map[title]) { map[title] = { title: title, items: [] }; groups.push(map[title]); }
+      map[title].items.push(run);
+    };
+    list.forEach(function (run) {
+      if (runPinned(run)) { push('置顶', run); return; }
+      if (runGroup === 'time') { push(timeBucket(run.updatedAt), run); return; }
+      if (runGroup === 'pipeline') { push(run.name, run); return; }
+      if (runGroup === 'none') { push('全部运行', run); return; }
+      if (run.status === 'waiting-human') { push('待你决定', run); return; }
+      if (['ready', 'waiting-action', 'paused', 'cancel-requested'].indexOf(run.status) >= 0) { push('进行中', run); return; }
+      if (run.status === 'done') { push(timeBucket(run.updatedAt) === '更早' ? '更早完成' : timeBucket(run.updatedAt) + '完成', run); return; }
+      push('已取消', run);
+    });
+    return groups;
+  }
+  function groupCollapsed(key) { return collapsedGroups.indexOf(key) >= 0; }
+  function toggleGroup(key, event) {
+    if (event) event.preventDefault();
+    var index = collapsedGroups.indexOf(key);
+    if (index >= 0) collapsedGroups.splice(index, 1); else collapsedGroups.push(key);
+    persistSettings();
+    render();
+  }
+  function selectOptions(options, current) {
+    return options.map(function (option) { return '<option value="' + esc(option.value) + '"' + (option.value === current ? ' selected' : '') + '>' + esc(option.label) + '</option>'; }).join('');
+  }
+  function sortBar(kind, current, options, extra) {
+    return '<span class="sortBar"><span class="dim">排序</span><select class="miniSelect" data-sort="' + kind + '">' + selectOptions(options, current) + '</select>' + (extra || '') + '</span>';
+  }
+  function wireSortBars() {
+    $$('[data-sort]').forEach(function (el) {
+      el.onchange = function () { setSetting(el.getAttribute('data-sort'), el.value); };
+    });
+  }
+  function outputKindLabel(kind) {
+    return { html: 'HTML', markdown: 'Markdown', json: 'JSON', text: 'Text', csv: 'CSV', image: '图片', file: '文件' }[kind] || '文件';
+  }
+  function sortedOutputs() {
+    var files = (snapshot.outputs || []).filter(function (file) { return matches(file.path + ' ' + file.name); }).slice();
+    files.sort(function (a, b) {
+      if (outputSort === 'name') return String(a.path).localeCompare(String(b.path));
+      if (outputSort === 'size') return (b.bytes || 0) - (a.bytes || 0);
+      if (outputSort === 'type') return String(a.kind || '').localeCompare(String(b.kind || '')) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+      return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+    });
+    return files;
+  }
+  function outputUrl(path, version) {
+    return '/api/outputs/content?token=' + encodeURIComponent(token) + '&path=' + encodeURIComponent(path) + (version ? '&v=' + encodeURIComponent(version) : '');
+  }
+
   function renderHeader() {
     $('#workspace').textContent = snapshot.workspace;
     var mode = $('#mode');
@@ -614,34 +828,53 @@ const APP_JS = String.raw`(function () {
     var host = $('#overview');
     host.innerHTML = html;
     $$('.metric').forEach(function (el) {
-      el.onclick = function () { filter = el.getAttribute('data-filter') === 'pipelines' ? 'all' : el.getAttribute('data-filter'); render(); };
+      el.onclick = function () { filter = el.getAttribute('data-filter') === 'pipelines' ? 'all' : el.getAttribute('data-filter'); persistSettings(); render(); };
     });
   }
   function pipelineCard(pipe) {
     var selected = selectedPipelineFile === pipe.file;
-    return '<button type="button" class="pipelineCard' + (selected ? ' selected' : '') + '" data-pipeline="' + esc(pipe.file) + '">' +
-      '<span class="pipeIcon">' + icon('pipeline') + '</span>' +
-      '<span class="pipeBody"><span class="pipeName">' + esc(pipe.name) + '</span>' +
-      '<span class="pipeIntent">' + esc(pipe.intent) + '</span>' +
-      '<span class="pipeMeta">' + pipe.nodes + ' 节点 · ' + pipe.deliveries + ' 交付项 · ' + esc(pipe.file) + '</span></span></button>';
+    var pinned = pipelinePinned(pipe);
+    return '<div class="pipelineCard' + (selected ? ' selected' : '') + (pinned ? ' pinned' : '') + '" data-pipeline="' + esc(pipe.file) + '" role="button" tabindex="0" aria-label="' + esc(pipe.name) + '">' +
+      '<div class="pipeTop"><span class="pipeCat">' + esc(pipe.category || '未分类') + '</span>' + pinButton('pipelines', pipe.file, pinned, pipe.name) + '</div>' +
+      '<div class="pipeName">' + esc(pipe.name) + '</div>' +
+      '<div class="pipeIntent">' + esc(pipe.intent) + '</div>' +
+      '<div class="pipeMeta">' + pipe.nodes + ' 节点 · ' + pipe.deliveries + ' 交付 · 运行 ' + (pipe.runCount || 0) + ' 次' + (pipe.lastRunAt ? ' · ' + esc(ago(pipe.lastRunAt)) : '') + '</div>' +
+      (pipe.tags && pipe.tags.length ? '<div class="pipeTags">' + pipe.tags.map(function (tag) { return '<span class="miniTag">' + esc(tag) + '</span>'; }).join('') + '</div>' : '') +
+      '</div>';
   }
   function renderLibrary() {
     var host = $('#library');
-    var pipelines = filteredPipelines();
+    var pipelines = sortedPipelines();
+    var groups = groupPipelines(pipelines);
     var html = '<div class="panelTitle">' + icon('pipeline') + '<span>管线库</span><span class="count">' + pipelines.length + '</span></div>';
+    html += '<div class="libTools">' + sortBar('pipelineSort', pipelineSort, [
+      { value: 'category', label: '分类' }, { value: 'latest', label: '最新' }, { value: 'mostUsed', label: '最常用' }, { value: 'name', label: '名称' }
+    ]) + '<button type="button" class="miniToggle' + (pipelineGrouped ? ' active' : '') + '" data-toggle-lib-group>' + (pipelineGrouped ? '分组' : '平铺') + '</button></div>';
     if (!pipelines.length) {
-      html += '<div class="emptySmall">' + (searchTerm ? '没有匹配的登记管线。' : '还没有登记管线。把可运行的管线定义 JSON 放到工作区 <code>pipelines/</code> 即可。') + '</div>';
+      html += '<div class="emptySmall">' + (searchTerm ? '没有匹配的登记管线。' : '还没有登记管线。把可运行的管线定义 JSON 放到工作区 <code>pipelines/</code> 即可；可选 <code>pipelines/index.json</code> 标注分类/标签/置顶。') + '</div>';
     } else {
-      html += '<div class="pipelineList">';
-      pipelines.forEach(function (pipe) { html += pipelineCard(pipe); });
-      html += '</div>';
+      groups.forEach(function (group) {
+        var key = 'lib:' + group.title;
+        html += '<button type="button" class="groupHead" data-group-key="' + esc(key) + '"><span class="chev">' + (groupCollapsed(key) ? '▸' : '▾') + '</span><span>' + esc(group.title) + '</span><span class="count">' + group.items.length + '</span></button>';
+        if (!groupCollapsed(key)) html += '<div class="pipelineList">' + group.items.map(pipelineCard).join('') + '</div>';
+      });
     }
     if (snapshot.pipelineWarnings && snapshot.pipelineWarnings.length) {
       html += '<details class="warnBox"><summary>' + snapshot.pipelineWarnings.length + ' 条定义已跳过</summary><ul>' + snapshot.pipelineWarnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></details>';
     }
     host.innerHTML = html;
-    $$('[data-pipeline]').forEach(function (el) {
+    wireSortBars();
+    var toggle = host.querySelector('[data-toggle-lib-group]');
+    if (toggle) toggle.onclick = function () { pipelineGrouped = !pipelineGrouped; persistSettings(); render(); };
+    $$('#library [data-pin-kind]').forEach(function (el) {
+      el.onclick = function (event) { togglePin(el.getAttribute('data-pin-kind'), el.getAttribute('data-pin-key'), event); };
+    });
+    $$('#library [data-pipeline]').forEach(function (el) {
       el.onclick = function () { selectPipeline(el.getAttribute('data-pipeline')); };
+      el.onkeydown = function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPipeline(el.getAttribute('data-pipeline')); } };
+    });
+    $$('#library [data-group-key]').forEach(function (el) {
+      el.onclick = function () { toggleGroup(el.getAttribute('data-group-key')); };
     });
   }
   function progressPct(run) { return run.total ? Math.round(100 * run.index / run.total) : 0; }
@@ -649,53 +882,75 @@ const APP_JS = String.raw`(function () {
     var meta = statusOf(run.status);
     var selected = selectedRunId === run.id;
     var pct = progressPct(run);
+    var pinned = runPinned(run);
+    var usage = pipelineUsage(run.name);
     var hint = '';
     if (run.status === 'waiting-human') hint = '<span class="cardHint attention">需要你决定 · 去 Harness 回答</span>';
     else if (run.status === 'waiting-action') hint = '<span class="cardHint">等待执行者提交</span>';
     else if (run.status === 'cancel-requested') hint = '<span class="cardHint">外部动作状态未知</span>';
-    return '<button type="button" class="runCard ' + meta.tone + (selected ? ' selected' : '') + '" data-run="' + esc(run.id) + '">' +
+    return '<div class="runCard ' + meta.tone + (selected ? ' selected' : '') + (pinned ? ' pinned' : '') + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
       '<span class="runStripe"></span>' +
       '<span class="runTop"><span class="statusChip ' + meta.tone + '"><span class="dot"></span>' + esc(meta.zh) + '</span>' +
       (run.recoveredCount ? '<span class="miniTag">恢复×' + run.recoveredCount + '</span>' : '') +
-      '<span class="runTime">' + esc(ago(run.updatedAt)) + '</span></span>' +
+      (usage.runCount ? '<span class="miniTag dimTag">管线运行 ' + usage.runCount + ' 次</span>' : '') +
+      '<span class="runTime">' + esc(ago(run.updatedAt)) + '</span>' + pinButton('runs', run.id, pinned, run.name) + '</span>' +
       '<span class="runName">' + esc(run.name) + '</span>' +
       '<span class="runSub">' + esc(run.currentStep ? run.currentStep.id : '—') + ' · ' + run.index + '/' + run.total + ' · ' + shortId(run.id) + '</span>' +
       '<span class="runProgress"><span style="width:' + pct + '%"></span></span>' +
       hint +
-      '</button>';
+      '</div>';
   }
-  function group(html, title, runs, emptyText) {
-    if (!runs.length) return html;
-    html += '<div class="groupTitle">' + esc(title) + '<span class="count">' + runs.length + '</span></div>';
-    runs.forEach(function (run) { html += runCard(run); });
-    return html;
+  function renderGroupHeader(key, title, count) {
+    return '<button type="button" class="groupHead" data-group-key="' + esc(key) + '"><span class="chev">' + (groupCollapsed(key) ? '▸' : '▾') + '</span><span>' + esc(title) + '</span><span class="count">' + count + '</span></button>';
   }
   function renderBoard() {
     var host = $('#board');
-    var runs = filteredRuns();
+    var runs = sortedRuns();
+    var groups = groupRuns(runs);
     var html = '<div class="boardHead"><div class="panelTitle">' + icon('pipeline') + '<span>运行</span><span class="count">' + runs.length + '</span></div>' +
-      '<div class="boardHint">点击卡片查看步骤、证据与操作</div></div>';
+      '<div class="toolbar">' + sortBar('runSort', runSort, [
+        { value: 'latest', label: '最新' }, { value: 'mostUsed', label: '最常用' }, { value: 'status', label: '状态' }, { value: 'name', label: '名称' }
+      ]) + '<span class="sortBar"><span class="dim">分组</span><select class="miniSelect" data-group-select>' +
+      selectOptions([{ value: 'status', label: '状态' }, { value: 'time', label: '时间' }, { value: 'pipeline', label: '管线' }, { value: 'none', label: '不分组' }], runGroup) +
+      '</select></span></div></div>';
     if (!runs.length) {
       html += '<div class="empty"><div class="emptyTitle">' + (searchTerm ? '没有匹配的运行' : '还没有运行记录') + '</div>' +
         '<div class="emptyHint">' + (searchTerm ? '清空搜索或切换筛选。' : '在 Harness 会话里用 <code>orch_create</code> 创建并确认，运行会实时出现在这里。') + '</div></div>';
-    } else if (filter === 'all') {
-      var needs = runs.filter(function (r) { return r.status === 'waiting-human'; });
-      var active = runs.filter(function (r) { return ['ready', 'waiting-action', 'paused', 'cancel-requested'].indexOf(r.status) >= 0; });
-      var finished = runs.filter(function (r) { return ['done', 'cancelled'].indexOf(r.status) >= 0; });
-      html = group(html, '待你决定', needs);
-      html = group(html, '进行中', active);
-      html = group(html, '已完成 / 已取消', finished);
     } else {
-      runs.forEach(function (run) { html += runCard(run); });
+      var rendered = 0;
+      var limit = page.board;
+      for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
+        var key = 'run:' + runGroup + ':' + group.title;
+        var items = group.items;
+        var collapsed = groupCollapsed(key);
+        html += renderGroupHeader(key, group.title, items.length);
+        if (collapsed) continue;
+        for (var i = 0; i < items.length && rendered < limit; i++) { html += runCard(items[i]); rendered++; }
+        if (rendered >= limit) break;
+      }
+      var remaining = runs.length - rendered;
+      if (remaining > 0) html += '<button type="button" class="loadMore" data-load-board>显示更多（还有 ' + remaining + ' 条）</button>';
     }
     if (snapshot.warnings && snapshot.warnings.length) {
       html += '<details class="warnBox"><summary>' + snapshot.warnings.length + ' 条运行文件已跳过</summary><ul>' + snapshot.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></details>';
     }
     host.innerHTML = html;
-    $$('[data-run]').forEach(function (el) {
-      el.onclick = function () { selectRun(el.getAttribute('data-run')); };
+    wireSortBars();
+    var groupSelect = host.querySelector('[data-group-select]');
+    if (groupSelect) groupSelect.onchange = function () { runGroup = groupSelect.value; persistSettings(); render(); };
+    var load = host.querySelector('[data-load-board]');
+    if (load) load.onclick = function () { page.board += 30; persistSettings(); render(); };
+    $$('#board [data-pin-kind]').forEach(function (el) {
+      el.onclick = function (event) { togglePin(el.getAttribute('data-pin-kind'), el.getAttribute('data-pin-key'), event); };
     });
+    $$('#board [data-run]').forEach(function (el) {
+      el.onclick = function () { selectRun(el.getAttribute('data-run')); };
+      el.onkeydown = function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRun(el.getAttribute('data-run')); } };
+    });
+    $$('#board [data-group-key]').forEach(function (el) { el.onclick = function () { toggleGroup(el.getAttribute('data-group-key')); }; });
   }
+
   function actionButton(action, label, iconName, kind) {
     return '<button type="button" class="btn ' + (kind || '') + '" data-act="' + action + '">' + icon(iconName) + '<span>' + esc(label) + '</span></button>';
   }
@@ -825,10 +1080,33 @@ const APP_JS = String.raw`(function () {
     html += '<details class="rawBox"><summary>原始定义（JSON）</summary><pre class="mono">' + esc(JSON.stringify(definition, null, 2)) + '</pre></details>';
     return html;
   }
+  function renderOutputDrawer() {
+    var file = (snapshot.outputs || []).filter(function (o) { return o.path === selectedOutputPath; })[0];
+    if (!file) return '<div class="drawerLoading">输出物已不存在；刷新后重试。</div>';
+    var html = '<div class="drawerHead"><div><div class="drawerKicker">输出物</div><h2>' + esc(file.name) + '</h2>' +
+      '<div class="drawerMeta mono">' + esc(file.path) + '</div></div>' +
+      '<button type="button" class="iconBtn" data-close-drawer aria-label="关闭预览">' + icon('close') + '</button></div>';
+    html += '<div class="drawerStatus"><span class="statusChip ready"><span class="dot"></span>' + esc(outputKindLabel(file.kind)) + '</span><span class="dim">' + esc(formatBytes(file.bytes)) + ' · 更新 ' + esc(ago(file.updatedAt)) + (autoFollow ? ' · 自动跟随' : '') + '</span></div>';
+    html += '<div class="outputToolbar">' +
+      '<button type="button" class="btn small" data-open-output="' + esc(file.path) + '">在新标签打开</button>' +
+      '<button type="button" class="btn small" data-refresh-output="' + esc(file.path) + '">刷新预览</button>' +
+      '<button type="button" class="btn small" data-copy-output="' + esc(file.path) + '">' + icon('copy') + '<span>复制路径</span></button>' +
+      (autoFollow ? '<span class="dim">文件更新后会自动刷新预览</span>' : '') + '</div>';
+    if (file.kind === 'image') {
+      html += '<div class="previewWrap"><img class="previewImage" src="' + outputUrl(file.path, file.updatedAt) + '" alt="' + esc(file.name) + '"></div>';
+    } else if (file.kind === 'html' || file.kind === 'markdown' || file.kind === 'text' || file.kind === 'json' || file.kind === 'csv') {
+      html += '<iframe class="previewFrame" sandbox="allow-same-origin allow-popups" src="' + outputUrl(file.path, file.updatedAt) + '" title="' + esc(file.name) + ' 预览"></iframe>';
+      if (file.kind === 'markdown') html += '<div class="hint" style="margin-top:6px">Markdown 以纯文本预览；HTML 简报会渲染排版。</div>';
+    } else {
+      html += '<div class="emptySmall">该类型不支持内嵌预览，请用“在新标签打开”查看。</div>';
+    }
+    return html;
+  }
   function renderDrawer() {
     var drawer = $('#drawer');
     var content = '';
-    if (selectedPipelineFile) content = renderPipelineDrawer();
+    if (selectedOutputPath) content = renderOutputDrawer();
+    else if (selectedPipelineFile) content = renderPipelineDrawer();
     else if (selectedRunId) content = renderRunDrawer();
     var layout = document.getElementById('layout');
     if (!content) {
@@ -838,7 +1116,7 @@ const APP_JS = String.raw`(function () {
       return;
     }
     drawer.hidden = false;
-    drawer.className = 'drawer open';
+    drawer.className = 'drawer open' + (selectedOutputPath ? ' preview' : '');
     if (layout) layout.className = 'layout drawerOpen';
     drawer.innerHTML = content;
     wireDrawer();
@@ -850,23 +1128,42 @@ const APP_JS = String.raw`(function () {
     $$('[data-copy-run]').forEach(function (el) { el.onclick = function () { copyText(el.getAttribute('data-copy-run'), 'runId '); }; });
     $$('[data-copy-prompt]').forEach(function (el) { el.onclick = function () { copyText(el.getAttribute('data-copy-prompt'), '继续提示 '); }; });
     $$('[data-copy-file]').forEach(function (el) { el.onclick = function () { copyText(el.getAttribute('data-copy-file'), '登记路径 '); }; });
+    $$('[data-open-output]').forEach(function (el) { el.onclick = function () { window.open(outputUrl(el.getAttribute('data-open-output')), '_blank', 'noopener'); }; });
+    $$('[data-copy-output]').forEach(function (el) { el.onclick = function () { copyText(el.getAttribute('data-copy-output'), '输出物路径 '); }; });
+    $$('[data-refresh-output]').forEach(function (el) { el.onclick = function () { renderDrawer(); toast('预览已刷新'); }; });
     $$('[data-act]').forEach(function (el) { el.onclick = function () { runAction(el.getAttribute('data-act')); }; });
   }
-  function closeDrawer() { selectedRunId = null; selectedPipelineFile = null; runDetail = null; renderBoard(); renderLibrary(); renderDrawer(); }
-  function selectRun(id) {
-    if (selectedRunId === id) return;
-    selectedRunId = id;
+  function closeDrawer() {
+    selectedRunId = null;
+    selectedPipelineFile = null;
+    selectedOutputPath = null;
+    runDetail = null;
+    render();
+  }
+  function selectOutput(path) {
+    if (selectedOutputPath === path) return;
+    selectedOutputPath = path;
+    selectedRunId = null;
     selectedPipelineFile = null;
     runDetail = null;
-    renderBoard(); renderLibrary(); renderDrawer();
+    render();
+  }
+  function selectRun(id) {
+    if (selectedRunId === id) return;
+    selectedOutputPath = null;
+    selectedPipelineFile = null;
+    selectedRunId = id;
+    runDetail = null;
+    render();
     loadRunDetail();
   }
   function selectPipeline(file) {
     if (selectedPipelineFile === file) return;
-    selectedPipelineFile = file;
+    selectedOutputPath = null;
     selectedRunId = null;
+    selectedPipelineFile = file;
     runDetail = null;
-    renderBoard(); renderLibrary(); renderDrawer();
+    render();
   }
   function loadRunDetail() {
     if (!selectedRunId) return;
@@ -915,9 +1212,6 @@ const APP_JS = String.raw`(function () {
     if (n < 1024 * 1024) return (n / 1024).toFixed(1) + 'KB';
     return (n / 1024 / 1024).toFixed(1) + 'MB';
   }
-  function outputUrl(path) {
-    return '/api/outputs/content?token=' + encodeURIComponent(token) + '&path=' + encodeURIComponent(path);
-  }
   function exportRuns() {
     var payload = { exportedAt: new Date().toISOString(), workspace: snapshot.workspace, filter: filter, runs: filteredRuns() };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -932,16 +1226,19 @@ const APP_JS = String.raw`(function () {
   }
   function renderRecords() {
     var host = $('#board');
-    var runs = filteredRuns().slice().sort(function (a, b) { return String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')); });
+    var runs = sortedRuns();
+    var shown = runs.slice(0, page.records);
     var html = '<div class="boardHead"><div class="panelTitle">' + icon('pipeline') + '<span>运行记录</span><span class="count">' + runs.length + '</span></div>' +
-      '<div class="toolbar"><button type="button" class="btn small" id="exportRuns">导出 JSON</button><span class="boardHint">记录只读；调度仍按状态矩阵</span></div></div>';
+      '<div class="toolbar">' + sortBar('runSort', runSort, [
+        { value: 'latest', label: '最新' }, { value: 'mostUsed', label: '最常用' }, { value: 'status', label: '状态' }, { value: 'name', label: '名称' }
+      ]) + '<button type="button" class="btn small" id="exportRuns">导出 JSON</button></div></div>';
     if (!runs.length) {
       html += '<div class="empty"><div class="emptyTitle">没有匹配的运行记录</div><div class="emptyHint">清空搜索、切换筛选，或先在 Harness 会话里创建运行。</div></div>';
     } else {
-      html += '<div class="recordsWrap"><table class="records"><thead><tr><th>状态</th><th>运行</th><th>进度</th><th>收据</th><th>开始</th><th>耗时</th><th>更新</th><th></th></tr></thead><tbody>';
-      runs.forEach(function (run) {
-        var meta = statusOf(run.status);
-        html += '<tr class="recordRow" data-record="' + esc(run.id) + '"><td>' + statusChip(run.status) + '</td>' +
+      html += '<div class="recordsWrap"><table class="records"><thead><tr><th></th><th>状态</th><th>运行</th><th>进度</th><th>收据</th><th>开始</th><th>耗时</th><th>更新</th><th></th></tr></thead><tbody>';
+      shown.forEach(function (run) {
+        html += '<tr class="recordRow" data-record="' + esc(run.id) + '"><td>' + pinButton('runs', run.id, runPinned(run), run.name) + '</td>' +
+          '<td>' + statusChip(run.status) + '</td>' +
           '<td><div class="recordName">' + esc(run.name) + '</div><div class="recordId mono">' + esc(run.id) + '</div></td>' +
           '<td class="mono dim">' + run.index + '/' + run.total + '</td>' +
           '<td class="mono dim">' + run.receiptCount + (run.recoveredCount ? ' · 恢复' + run.recoveredCount : '') + '</td>' +
@@ -951,53 +1248,105 @@ const APP_JS = String.raw`(function () {
           '<td class="recordActions"><button type="button" class="miniLink" data-open-run="' + esc(run.id) + '">详情</button></td></tr>';
       });
       html += '</tbody></table></div>';
+      if (runs.length > shown.length) html += '<button type="button" class="loadMore" data-load-records>显示更多（还有 ' + (runs.length - shown.length) + ' 条）</button>';
     }
     host.innerHTML = html;
+    wireSortBars();
     var btn = $('#exportRuns'); if (btn) btn.onclick = exportRuns;
     $$('[data-open-run]').forEach(function (el) { el.onclick = function (event) { event.stopPropagation(); selectRun(el.getAttribute('data-open-run')); }; });
+    $$('[data-pin-kind]').forEach(function (el) { el.onclick = function (event) { togglePin(el.getAttribute('data-pin-kind'), el.getAttribute('data-pin-key'), event); }; });
     $$('.recordRow').forEach(function (el) { el.onclick = function () { selectRun(el.getAttribute('data-record')); }; });
+    var load = host.querySelector('[data-load-records]'); if (load) load.onclick = function () { page.records += 25; persistSettings(); render(); };
+  }
+  function outputKindOrder(kind) {
+    return { html: 0, markdown: 1, json: 2, csv: 3, text: 4, image: 5, file: 6 }[kind] ?? 9;
   }
   function renderOutputs() {
     var host = $('#board');
-    var files = (snapshot.outputs || []).filter(function (file) { return matches(file.path + ' ' + file.name); });
+    var files = sortedOutputs();
     var html = '<div class="boardHead"><div class="panelTitle">' + icon('pipeline') + '<span>输出物</span><span class="count">' + files.length + '</span></div>' +
-      '<div class="toolbar"><button type="button" class="btn small" id="refreshOutputs">刷新</button><span class="boardHint">只读打开；不执行文件内容</span></div></div>';
+      '<div class="toolbar">' + sortBar('outputSort', outputSort, [
+        { value: 'latest', label: '最新' }, { value: 'name', label: '名称' }, { value: 'size', label: '大小' }, { value: 'type', label: '类型' }
+      ]) + '<button type="button" class="btn small" id="refreshOutputs">刷新</button></div></div>';
     if (!files.length) {
-      html += '<div class="empty"><div class="emptyTitle">还没有输出物</div><div class="emptyHint">运行产生交付文件后会出现在工作区 <code>output/</code>；这里只做只读查看与打开。</div></div>';
+      html += '<div class="empty"><div class="emptyTitle">还没有输出物</div><div class="emptyHint">运行产生交付文件后会出现在工作区 <code>output/</code>；这里只做只读查看、预览与打开。</div></div>';
     } else {
-      html += '<div class="outputGrid">';
+      var shown = 0;
+      var groups = [];
+      var byKind = {};
       files.forEach(function (file) {
         var kind = file.kind || 'file';
-        html += '<div class="outputCard ' + esc(kind) + '"><div class="outputTop"><span class="outputKind">' + esc(outputKindLabel(kind)) + '</span><span class="dim mono">' + esc(formatBytes(file.bytes)) + '</span></div>' +
-          '<div class="outputName" title="' + esc(file.path) + '">' + esc(file.name) + '</div>' +
-          '<div class="outputPath mono">' + esc(file.path) + '</div>' +
-          '<div class="outputFoot"><span class="dim">' + esc(ago(file.updatedAt)) + '</span>' +
-          '<span class="outputActions"><button type="button" class="miniLink" data-open-file="' + esc(file.path) + '">打开</button>' +
-          '<button type="button" class="miniLink" data-copy-filepath="' + esc(file.path) + '">复制路径</button></span></div></div>';
+        if (!byKind[kind]) { byKind[kind] = { kind: kind, items: [] }; groups.push(byKind[kind]); }
+        byKind[kind].items.push(file);
       });
-      html += '</div>';
+      groups.sort(function (a, b) { return outputKindOrder(a.kind) - outputKindOrder(b.kind); });
+      for (var g = 0; g < groups.length && shown < page.outputs; g++) {
+        var group = groups[g];
+        var key = 'out:' + group.kind;
+        html += renderGroupHeader(key, outputKindLabel(group.kind), group.items.length);
+        if (groupCollapsed(key)) continue;
+        html += '<div class="outputGrid">';
+        for (var i = 0; i < group.items.length && shown < page.outputs; i++) {
+          var file = group.items[i];
+          html += '<div class="outputCard ' + esc(file.kind) + '" data-output="' + esc(file.path) + '" role="button" tabindex="0">' +
+            '<div class="outputTop"><span class="outputKind">' + esc(outputKindLabel(file.kind)) + '</span><span class="dim mono">' + esc(formatBytes(file.bytes)) + '</span></div>' +
+            '<div class="outputName" title="' + esc(file.path) + '">' + esc(file.name) + '</div>' +
+            '<div class="outputPath mono">' + esc(file.path) + '</div>' +
+            '<div class="outputFoot"><span class="dim">' + esc(ago(file.updatedAt)) + '</span>' +
+            '<span class="outputActions"><button type="button" class="miniLink" data-open-file="' + esc(file.path) + '">打开</button>' +
+            '<button type="button" class="miniLink" data-copy-filepath="' + esc(file.path) + '">复制路径</button></span></div></div>';
+          shown++;
+        }
+        html += '</div>';
+      }
+      if (files.length > shown) html += '<button type="button" class="loadMore" data-load-outputs>显示更多（还有 ' + (files.length - shown) + ' 条）</button>';
     }
     if (snapshot.outputWarnings && snapshot.outputWarnings.length) {
       html += '<details class="warnBox"><summary>' + snapshot.outputWarnings.length + ' 个输出物已跳过</summary><ul>' + snapshot.outputWarnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></details>';
     }
     host.innerHTML = html;
+    wireSortBars();
     var refresh = $('#refreshOutputs'); if (refresh) refresh.onclick = function () { refresh().then(function () { toast('已刷新'); }); };
-    $$('[data-open-file]').forEach(function (el) { el.onclick = function () { window.open(outputUrl(el.getAttribute('data-open-file')), '_blank', 'noopener'); }; });
-    $$('[data-copy-filepath]').forEach(function (el) { el.onclick = function () { copyText(el.getAttribute('data-copy-filepath'), '输出物路径 '); }; });
-  }
-  function outputKindLabel(kind) {
-    return { html: 'HTML', markdown: 'Markdown', json: 'JSON', text: 'Text', csv: 'CSV', image: '图片', file: '文件' }[kind] || '文件';
+    $$('[data-open-file]').forEach(function (el) { el.onclick = function (event) { event.stopPropagation(); window.open(outputUrl(el.getAttribute('data-open-file')), '_blank', 'noopener'); }; });
+    $$('[data-copy-filepath]').forEach(function (el) { el.onclick = function (event) { event.stopPropagation(); copyText(el.getAttribute('data-copy-filepath'), '输出物路径 '); }; });
+    $$('[data-output]').forEach(function (el) {
+      el.onclick = function () { selectOutput(el.getAttribute('data-output')); };
+      el.onkeydown = function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectOutput(el.getAttribute('data-output')); } };
+    });
+    $$('#board [data-group-key]').forEach(function (el) { el.onclick = function () { toggleGroup(el.getAttribute('data-group-key')); }; });
+    var load = host.querySelector('[data-load-outputs]'); if (load) load.onclick = function () { page.outputs += 24; persistSettings(); render(); };
   }
   function setView(next) {
     view = next;
-    $$('#viewTabs [data-view]').forEach(function (el) { el.classList.toggle('active', el.getAttribute('data-view') === view); });
+    persistSettings();
     render();
   }
+  function updateAutoFollowButton() {
+    var btn = $('#autoFollow');
+    if (!btn) return;
+    btn.className = 'toggleBtn' + (autoFollow ? ' active' : '');
+    btn.textContent = autoFollow ? '自动跟随：开' : '自动跟随：关';
+    btn.setAttribute('aria-pressed', autoFollow ? 'true' : 'false');
+  }
+  function autoSelectLatestOutput() {
+    if (!autoFollow || view !== 'outputs') return;
+    var files = sortedOutputs();
+    if (!files.length) return;
+    var exists = files.some(function (file) { return file.path === selectedOutputPath; });
+    if (selectedOutputPath && exists) return;
+    selectedOutputPath = files[0].path;
+    selectedRunId = null;
+    selectedPipelineFile = null;
+    runDetail = null;
+    renderDrawer();
+  }
+
   function render() {
-    renderHeader(); renderOverview(); renderLibrary();
+    renderHeader(); renderOverview(); updateAutoFollowButton(); renderLibrary();
     if (view === 'records') renderRecords();
     else if (view === 'outputs') renderOutputs();
     else renderBoard();
+    if (view === 'outputs') autoSelectLatestOutput();
     renderDrawer();
   }
   function connect() {
@@ -1010,7 +1359,7 @@ const APP_JS = String.raw`(function () {
         render();
         if (selectedRunId) loadRunDetail();
       });
-      evtSource.onerror = function () { setLive(false); startPolling(); };
+      evtSource.onerror = function () { setLive(false, '连接断开'); startPolling(); };
       evtSource.onopen = function () { setLive(true); };
     } catch (error) {
       setLive(false);
@@ -1026,6 +1375,8 @@ const APP_JS = String.raw`(function () {
   $$('#viewTabs [data-view]').forEach(function (el) {
     el.onclick = function () { setView(el.getAttribute('data-view')); };
   });
+  var autoFollowBtn = $('#autoFollow');
+  if (autoFollowBtn) autoFollowBtn.onclick = function () { autoFollow = !autoFollow; persistSettings(); render(); };
   $('#search').addEventListener('input', function (event) {
     searchTerm = event.target.value.trim().toLowerCase();
     renderLibrary(); renderBoard();
@@ -1069,7 +1420,7 @@ header.top{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bot
 .overview{padding:12px 20px 4px}
 .viewBar{display:flex;align-items:center;gap:12px;padding:2px 20px 0}
 .viewTabs{display:inline-flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:2px}
-.viewTabs button{background:0 0;border:0;color:var(--muted);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer}
+.viewTabs button{background:0 0;border:0;color:var(--muted);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;white-space:nowrap}
 .viewTabs button:hover{color:var(--text)}
 .viewTabs button.active{background:#232a34;color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
 .viewHint{color:var(--dim);font-size:11px;margin-left:auto}
@@ -1113,7 +1464,7 @@ main.layout.drawerOpen{grid-template-columns:250px minmax(0,1fr) min(400px,36vw)
 .panelTitle{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;letter-spacing:.03em;margin:6px 2px 10px}
 .panelTitle .count{margin-left:auto;color:var(--dim);font-size:11px}
 .pipelineList{display:flex;flex-direction:column;gap:8px}
-.pipelineCard{display:flex;gap:9px;align-items:flex-start;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;color:var(--text)}
+.pipelineCard{display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;color:var(--text)}
 .pipelineCard:hover{border-color:var(--line2)}.pipelineCard.selected{border-color:var(--green)}
 .pipeIcon{color:var(--green);margin-top:2px;flex:0 0 auto}
 .pipeBody{min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1213,9 +1564,38 @@ ul.timeline li{display:grid;grid-template-columns:108px 108px 1fr;gap:6px;paddin
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .dim{color:var(--dim)}
 code{font-family:ui-monospace,Menlo,monospace;background:#1b2028;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.libTools{display:flex;align-items:center;gap:6px;margin:0 2px 8px}
+.sortBar{display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:10.5px}
+.miniSelect{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11px;outline:0;max-width:110px}
+.miniSelect:focus{border-color:var(--accent)}
+.miniToggle{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer}
+.miniToggle.active{color:var(--text);border-color:var(--line2);background:#232a34}
+.toggleBtn{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;white-space:nowrap}
+.toggleBtn.active{color:var(--green);border-color:#2b5a42;background:#14231b}
+.groupHead{display:flex;align-items:center;gap:7px;width:100%;background:0 0;border:0;color:var(--muted);font-size:11.5px;letter-spacing:.03em;padding:8px 2px;cursor:pointer;text-align:left}
+.groupHead:hover{color:var(--text)}
+.groupHead .chev{color:var(--dim);width:10px;display:inline-block}
+.groupHead .count{margin-left:auto;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 7px;font-size:10px}
+.pipeTop{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.pipeCat{font-size:9.5px;color:var(--accent);border:1px solid #2c4a78;border-radius:5px;padding:0 5px}
+.pipeTags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.pinBtn{background:0 0;border:0;color:var(--dim);font-size:13px;line-height:1;cursor:pointer;padding:2px 3px;border-radius:4px}
+.pinBtn:hover{color:var(--amber);background:#241f14}.pinBtn.pinned{color:var(--amber)}
+.pipelineCard.pinned{border-color:#5a4a25}.runCard.pinned .runStripe{background:var(--amber)}
+.dimTag{color:var(--dim);border-color:var(--line)}
+.loadMore{display:block;width:100%;margin:10px 0 4px;padding:8px;background:var(--panel);border:1px dashed var(--line2);border-radius:8px;color:var(--muted);font-size:11.5px;cursor:pointer}
+.loadMore:hover{color:var(--text);border-color:var(--accent)}
+.outputToolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}
+.previewWrap{display:flex;justify-content:center;background:#0d1014;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;max-height:60vh;overflow:auto}
+.previewImage{max-width:100%;max-height:58vh;display:block}
+.previewFrame{width:100%;height:min(64vh,720px);border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:8px}
+.drawer.preview{overflow:auto}
 @media (max-width:1100px){main.layout{grid-template-columns:220px minmax(0,1fr) 0}main.layout.drawerOpen{grid-template-columns:220px minmax(0,1fr) min(360px,40vw)}}
 @media (max-width:900px){
   body{overflow:auto}
+  .viewBar{flex-wrap:wrap;gap:8px}
+  .viewTabs button{padding:5px 9px}
+  .viewHint{display:none}
   header.top{flex-wrap:wrap;gap:8px;padding:10px 14px}
   #workspace{max-width:46vw}
   .overview{padding:10px 14px 2px}
@@ -1257,7 +1637,8 @@ function pageHtml(boot) {
     <button type="button" data-view="records">运行记录</button>
     <button type="button" data-view="outputs">输出物</button>
   </nav>
-  <span class="viewHint">默认只读；调度操作按状态矩阵</span>
+  <button type="button" id="autoFollow" class="toggleBtn" aria-pressed="true">自动跟随：开</button>
+  <span class="viewHint">只读观察 + 调度；需要人决定的仍在 Harness</span>
 </div>
 <main class="layout" id="layout">
   <aside id="library" class="library"></aside>
@@ -1415,7 +1796,7 @@ export async function startViewer(options = {}) {
           'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
           'Referrer-Policy': 'no-referrer',
-          'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+          'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; frame-src 'self'"
         });
         res.end(pageHtml({ token: secret, snapshot: snapshotData() }));
         return;

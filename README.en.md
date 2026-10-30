@@ -8,16 +8,16 @@ Turn confirmed intent into observable, verifiable, recoverable pipelines. A host
 
 ## Screenshots
 
-Developer preview of the `orch view` dashboard: overview, run records, delivered outputs and the run detail drawer. Screenshots use an isolated demo workspace (8 runs, 1 registered pipeline, 6 outputs; synthetic data, not real news). Full-size, narrow-layout and notes: [dashboard v4 evidence](docs/evidence/2026-10-30-dashboard-v4/README.md).
+Developer preview of the `orch view` dashboard: overview, run records, embedded output preview and the run detail drawer. Screenshots use an isolated demo workspace (36 runs, 2 registered pipelines, 26 outputs; synthetic data, not real news). Full-size, narrow-layout and notes: [dashboard v5 evidence](docs/evidence/2026-10-30-dashboard-v5/README.md).
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/01-overview.jpg" alt="Dashboard overview: status metrics, pipeline library and runs grouped by status"></td>
-    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/04-detail.jpg" alt="Run detail drawer: step flow, evidence, deliveries and the waiting-for-you guidance"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v5/01-overview.jpg" alt="Dashboard overview: status metrics, pipeline library and runs grouped by status"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v5/04-detail.jpg" alt="Run detail drawer: step flow, evidence, deliveries and the waiting-for-you guidance"></td>
   </tr>
   <tr>
-    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/02-records.jpg" alt="Run records: status filters, progress, receipts, duration and JSON export"></td>
-    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/03-outputs.jpg" alt="Outputs: read-only delivered files with open/copy path"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v5/02-records.jpg" alt="Run records: status filters, progress, receipts, duration and JSON export"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v5/03-outputs-preview.jpg" alt="Outputs: grouped by type, embedded preview and auto-follow"></td>
   </tr>
 </table>
 
@@ -28,6 +28,50 @@ The dashboard is a read-only management surface for observing, filtering and sch
 Human words are input. AI clarifies and restates a candidate; only human confirmation establishes formal Intent. Runs pin definition snapshots. The host retains control of tool execution and permissions. The `harness.userQuestions` source proves routing through the question channel, not who physically clicked; use additional identity and audit controls when delegated actions must be distinguished. Persist action IDs before dispatch, inspect unknown effects before recovery, and verify declared artifacts independently of model completion claims.
 
 The method draws on Digital Employee's pipeline practice. This is an original implementation with no dependency on that application. [Pre-flight](https://github.com/8778fkv694-hub/pre-flight) provides the project guide, Intent, Spec and Plan; pipeline references pin their content hashes.
+
+## Quickstart (zero config)
+
+```bash
+npm run quickstart
+```
+
+It creates/resets `.demo-workspace/` on this machine (synthetic demo data; no model, no credentials, no user-profile changes), seeds an example pipeline plus runs in several states and some outputs, then starts the read-only + scheduling dashboard and prints a local URL with a token. Press `Ctrl+C` to stop.
+
+- Another port: `npm run quickstart -- --port 8892`
+- Open the system browser (off by default): `npm run quickstart -- --open`
+- Read-only: `npm run quickstart -- --read-only`
+- Real workspace: `orch view <workspace>` (or `node src/viewer.js <workspace>`)
+
+Requires Node 22+; no runtime dependencies. Start-up failures explain the cause in plain language (Node version, port in use, unwritable workspace).
+
+## One-line invocation in Harness
+
+The plugin registers tools, not a slash command: state the goal in a session and the agent calls `orch_*`. The repo ships a DSH skill for stable recipes:
+
+```bash
+mkdir -p <workspace>/.agents/skills
+cp -R skills/dsh-orchestrator <workspace>/.agents/skills/
+```
+
+Then say things like:
+
+- "Run the news briefing pipeline and ask me the four preferences."
+- "What is that run doing now? Ask me with cards if a human decision is needed."
+- "Pause or resume this run; if the effect is unknown, reconcile before claiming it stopped."
+
+The skill contains recipes for creating runs, work orders, human gates, pause/resume/cancel/reconcile, the dashboard and failure discipline. It does not change permissions or let the model answer human gates.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `quickstart` complains about Node | Node 22+ required; upgrade and retry |
+| Port already in use | `npm run quickstart -- --port 0`, or pick another port |
+| Workspace not writable | Copy the repo to a writable location or fix permissions |
+| No `orch_*` tools in Harness | Plugin not installed/enabled; check the Plugins page and profile, then restart the session |
+| Dashboard is empty | No runs yet; try `quickstart` for the demo or `orch_create` in Harness |
+| Dashboard 401 / cannot open | Use the full URL with token; it only binds loopback |
+| Page says "connection lost" | `orch view` stopped; restart it, the page retries automatically |
 
 ## Install in an isolated Harness profile
 

@@ -70,6 +70,9 @@ function buildFixtures(workspace) {
     JSON.stringify(def({ name: '已登记演示管线', intent: '用于看板登记列表的演示定义' }), null, 2)
   );
   fs.writeFileSync(path.join(registry, 'bad-pipeline.json'), '{"version":1}');
+  fs.writeFileSync(path.join(registry, 'index.json'), JSON.stringify({
+    pipelines: [{ file: 'valid-pipeline.json', category: '演示分类', tags: ['示例', '置顶'], pinned: true }]
+  }, null, 2));
 
   // Delivered outputs (read-only listing/serving) plus one symlink that must be refused.
   const outputDir = path.join(workspace, 'output');
@@ -205,6 +208,17 @@ test('pipeline registry shows registered definitions and skips invalid ones', as
   assert.ok(page.includes('已登记演示管线'));
   assert.ok(page.includes('pipelines/valid-pipeline.json'));
   assert.ok(page.includes('"pipelines"'));
+});
+
+test('pipeline index supplies category, tags, pin and usage stats', async () => {
+  const list = await fetch(`${origin}/api/runs`, { headers: withToken() }).then(r => r.json());
+  const entry = list.pipelines.find(p => p.file === 'pipelines/valid-pipeline.json');
+  assert.ok(entry);
+  assert.equal(entry.category, '演示分类');
+  assert.deepEqual(entry.tags, ['示例', '置顶']);
+  assert.equal(entry.pinned, true);
+  assert.equal(entry.runCount, 0);
+  assert.equal(entry.lastRunAt, null);
 });
 
 test('outputs are listed read-only and served only from output/', async () => {

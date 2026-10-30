@@ -8,16 +8,16 @@
 
 ## 界面截图
 
-看板（`orch view`）开发预览：总览、运行记录、输出物与运行详情抽屉。截图使用隔离演示工作区（8 个运行、1 条登记管线、6 个输出物，合成数据，不是真实新闻）；完整尺寸、窄屏与说明见[看板 v4 证据](docs/evidence/2026-10-30-dashboard-v4/README.md)。
+看板（`orch view`）开发预览：总览、运行记录、输出物内嵌预览与运行详情抽屉。截图使用隔离演示工作区（36 个运行、2 条登记管线、26 个输出物，合成数据，不是真实新闻）；完整尺寸、窄屏与说明见[看板 v5 证据](docs/evidence/2026-10-30-dashboard-v5/README.md)。
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/01-overview.jpg" alt="看板总览：状态指标、管线库与按状态分组的运行卡片"></td>
-    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/04-detail.jpg" alt="运行详情抽屉：步骤流、证据、交付项与等待决定指引"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v5/01-overview.jpg" alt="看板总览：状态指标、管线库与按状态分组的运行卡片"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v5/04-detail.jpg" alt="运行详情抽屉：步骤流、证据、交付项与等待决定指引"></td>
   </tr>
   <tr>
-    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/02-records.jpg" alt="运行记录：状态筛选、进度、收据、耗时与导出"></td>
-    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/03-outputs.jpg" alt="输出物：只读列出交付文件并可打开/复制路径"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v5/02-records.jpg" alt="运行记录：状态筛选、进度、收据、耗时与导出"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v5/03-outputs-preview.jpg" alt="输出物：按类型分组、内嵌预览与自动跟随"></td>
   </tr>
 </table>
 
@@ -33,6 +33,50 @@
 - `harness.userQuestions` 表示答复经过宿主提问通道，不能单凭它证明具体是谁点击；需要区分本人和受托代操作时，应使用额外身份与审计机制。
 
 方法来自数字员工的管线实践；本仓原创实现，不要求安装数字员工。与[起飞](https://github.com/8778fkv694-hub/pre-flight)衔接：起飞建立AGENT、Intent、Spec与Plan，管线引用相关路径并固定内容摘要。
+
+## 快速开始（零配置）
+
+```bash
+npm run quickstart
+```
+
+它会在本机创建/重置 `.demo-workspace/`（合成演示数据，不调用模型、不读凭据、不改你的主 profile），生成示例管线、几个不同状态的运行与输出物，然后启动只读+调度的看板并打印带 token 的本机 URL。按 `Ctrl+C` 停止。
+
+- 换端口：`npm run quickstart -- --port 8892`
+- 自动打开系统浏览器（默认不自动弹）：`npm run quickstart -- --open`
+- 只用只读：`npm run quickstart -- --read-only`
+- 真实项目：`orch view <你的工作区>`（或 `node src/viewer.js <工作区>`）
+
+要求 Node 22+；仓库无运行依赖。失败时会给出人话原因（Node 版本、端口占用、工作区不可写等）。
+
+## 在 Harness 里一句话调用
+
+插件注册的是工具，不是 slash command；你只要在会话里说目标，Agent 会调用 `orch_*`。为了让常用流程更稳，仓库自带一个 DSH skill：
+
+```bash
+mkdir -p <工作区>/.agents/skills
+cp -R skills/dsh-orchestrator <工作区>/.agents/skills/
+```
+
+之后可以这样说：
+
+- “按新闻简报管线跑一份今天的简报，四项偏好问我。”
+- “看一下刚才那条运行到哪了；需要我决定就弹卡片。”
+- “把这个运行暂停/继续；外部动作不确定时先对账。”
+
+Skill 里含建管线、取工作单、人工门、暂停/继续/取消/对账、看板与失败纪律的标准配方；它不改变权限，也不允许模型代点人工门。
+
+## 常见问题
+
+| 现象 | 原因与处理 |
+|---|---|
+| `quickstart` 报 Node 版本 | 需要 Node 22+；升级后重试 |
+| 端口被占用 | `npm run quickstart -- --port 0` 让系统分配，或换端口 |
+| 工作区不可写 | 把仓库复制到可写位置，或修复权限 |
+| Harness 里看不到 `orch_*` 工具 | 插件未安装/未启用；到 Plugins 页面检查包与 profile，重启会话 |
+| 看板是空的 | 还没有运行；先 `quickstart` 看演示，或在 Harness 里 `orch_create` |
+| 看板打不开/401 | 用打印出来的完整 URL（含 token）；只绑本机回环 |
+| 页面显示“连接断开” | `orch view` 进程停了；重新启动，页面会自动重试 |
 
 ## 安装到隔离 Harness 配置
 

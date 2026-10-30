@@ -1,0 +1,11 @@
+
+  DSH Orchestrator · 零配置演示
+  ─────────────────────────────
+  看板：http://127.0.0.1:8893/?token=<demo-token>
+  模式：只读 + 调度（演示数据）
+  工作区：/Users/yiliwen/开发/dsh-orchestrator/.demo-workspace（合成演示数据，不调用模型/凭据）
+  演示运行：done d0f8b718 · waiting-human aec3600b · cancel-requested 445a17ab
+
+  打开浏览器：把上面的 URL 粘贴到浏览器（或用 --open 自动打开）
+  真实使用：orch view <你的项目工作区>
+  按 Ctrl+C 停止。

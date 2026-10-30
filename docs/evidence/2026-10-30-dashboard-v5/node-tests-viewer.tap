@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: loadRuns skips invalid and symlink state files with warnings
+ok 1 - loadRuns skips invalid and symlink state files with warnings
+  ---
+  duration_ms: 5.531708
+  type: 'test'
+  ...
+# Subtest: page requires the per-process token and escapes dynamic text
+ok 2 - page requires the per-process token and escapes dynamic text
+  ---
+  duration_ms: 22.981958
+  type: 'test'
+  ...
+# Subtest: api/runs returns summaries in real time shape
+ok 3 - api/runs returns summaries in real time shape
+  ---
+  duration_ms: 3.449916
+  type: 'test'
+  ...
+# Subtest: pipeline registry shows registered definitions and skips invalid ones
+ok 4 - pipeline registry shows registered definitions and skips invalid ones
+  ---
+  duration_ms: 3.750458
+  type: 'test'
+  ...
+# Subtest: pipeline index supplies category, tags, pin and usage stats
+ok 5 - pipeline index supplies category, tags, pin and usage stats
+  ---
+  duration_ms: 2.313292
+  type: 'test'
+  ...
+# Subtest: outputs are listed read-only and served only from output/
+ok 6 - outputs are listed read-only and served only from output/
+  ---
+  duration_ms: 9.093417
+  type: 'test'
+  ...
+# Subtest: run detail verifies current artifact bytes against the receipt
+ok 7 - run detail verifies current artifact bytes against the receipt
+  ---
+  duration_ms: 2.60425
+  type: 'test'
+  ...
+# Subtest: action endpoints require POST, token header, allowed origin and read-write mode
+ok 8 - action endpoints require POST, token header, allowed origin and read-write mode
+  ---
+  duration_ms: 5.113583
+  type: 'test'
+  ...
+# Subtest: scheduling actions follow the core state machine and keep state persisted
+ok 9 - scheduling actions follow the core state machine and keep state persisted
+  ---
+  duration_ms: 27.851417
+  type: 'test'
+  ...
+# Subtest: read-only mode hides actions and rejects them
+ok 10 - read-only mode hides actions and rejects them
+  ---
+  duration_ms: 4.209291
+  type: 'test'
+  ...
+# Subtest: read-only GET traffic does not mutate state files
+ok 11 - read-only GET traffic does not mutate state files
+  ---
+  duration_ms: 4.503625
+  type: 'test'
+  ...
+# Subtest: SSE pushes an initial snapshot and another snapshot after a state change
+ok 12 - SSE pushes an initial snapshot and another snapshot after a state change
+  ---
+  duration_ms: 136.081625
+  type: 'test'
+  ...
+# Subtest: symlinked .orchestrator is refused for listing and single-run reads
+ok 13 - symlinked .orchestrator is refused for listing and single-run reads
+  ---
+  duration_ms: 13.298042
+  type: 'test'
+  ...
+# Subtest: structurally corrupt state file is skipped and does not break API or live push
+ok 14 - structurally corrupt state file is skipped and does not break API or live push
+  ---
+  duration_ms: 1406.017916
+  type: 'test'
+  ...
+# Subtest: stale lock blocks actions with a friendly, path-free error and manual recovery works
+ok 15 - stale lock blocks actions with a friendly, path-free error and manual recovery works
+  ---
+  duration_ms: 18.928375
+  type: 'test'
+  ...
+# Subtest: direct src/viewer.js entry works without an explicit token (regression)
+ok 16 - direct src/viewer.js entry works without an explicit token (regression)
+  ---
+  duration_ms: 140.003167
+  type: 'test'
+  ...
+# Subtest: orch view CLI prints a loopback URL and stops on SIGINT
+ok 17 - orch view CLI prints a loopback URL and stops on SIGINT
+  ---
+  duration_ms: 112.28525
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2116.134333

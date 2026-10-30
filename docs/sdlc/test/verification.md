@@ -8,7 +8,7 @@
 | 无模型示例 | npm run demo | 本地固定脚本计算42，独立文件核验，模型调用0 |
 | 真实安装运行时 | scripts/verify-harness-runtime.cjs | Harness tools 0.2.1-rc.3；10工具注册，6次真实工具调用，产物/人工门流程及卸载；Agent和回答为夹具，模型调用0 |
 | 独立安装包/profile | npm pack + 临时DSH_HOME内plugin add、dump-config、remove | 真实安装/合成配置/卸载通过；未启动界面、未修改现有profile |
-| 本地看板（INTENT-002） | `orch view`：只读运行视图、SSE 实时状态、`next/pause/resume/cancel` 调度、令牌/Origin/Host/只读/转义/损坏快照跳过/符号链接目录拒绝/已登记管线/记录视图/输出物只读服务 | 专项16/16、全量48/48；真实浏览器点击「启动」由ready→waiting-action并显示工作单；真实验收工作区6个运行只读展示，见[证据](../../evidence/2026-10-30-viewer/README.md)；v4 重设计证据见[看板 v4 证据](../../evidence/2026-10-30-dashboard-v4/README.md)；未做局域网/多用户 |
+| 本地看板（INTENT-002） | `orch view`：只读运行视图、SSE 实时状态、`next/pause/resume/cancel` 调度、令牌/Origin/Host/只读/转义/损坏快照跳过/符号链接目录拒绝/已登记管线/记录视图/输出物只读服务 | 专项17/17、全量49/49；真实浏览器点击「启动」由ready→waiting-action并显示工作单；真实验收工作区6个运行只读展示，见[证据](../../evidence/2026-10-30-viewer/README.md)；v4 重设计证据见[看板 v4 证据](../../evidence/2026-10-30-dashboard-v4/README.md)；开箱即用/规模化证据见[看板 v5 证据](../../evidence/2026-10-30-dashboard-v5/README.md)；未做局域网/多用户 |
 | 真实模型/界面端到端 | 混合管线、重启恢复、脚本节点 | [混合](../../evidence/2026-10-30-harness-e2e/mixed-happy-path.json)、[恢复](../../evidence/2026-10-30-harness-e2e/recovery.json)、[脚本](../../evidence/2026-10-30-harness-e2e/script.json)（均运行于 `66d252f`）；拒绝/取消等反例见下一行 |
 | 真实模型/界面反例（追加） | 确认卡reject、skip（无答案）、缺交付、在途取消、对账stopped、对账verified修复回归、人工门reject | 1个会话18/20步、守卫0拒绝；[执行记录](../../evidence/2026-10-30-harness-adverse/README.md)与[汇总](../../evidence/2026-10-30-harness-adverse/ui-adverse.json)，运行于修复提交 `67e0f7c`；8张卡由获授权的验收操作者代点 |
 | 已安装Harness运行时反例 | 拒绝意图、无答案、缺文件、取消待确认、恢复拒绝推进、卸载 | [收据](../../evidence/2026-10-30-harness-e2e/runtime-adverse.json)；使用合成Agent及回答，不是UI真人测试 |

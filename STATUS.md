@@ -6,10 +6,10 @@
 
 已验证：
 
-- 核心/适配与看板：`npm test` **48/48**（核心/插件/驱动 32 项 + 看板 16 项；核心[修复后日志](docs/evidence/2026-10-30-cancellation-fix/node-tests.tap)）；含真实子进程 SIGKILL 恢复；提问回答为夹具，不是真人。
+- 核心/适配与看板：`npm test` **49/49**（核心/插件/驱动 32 项 + 看板 17 项；核心[修复后日志](docs/evidence/2026-10-30-cancellation-fix/node-tests.tap)）；含真实子进程 SIGKILL 恢复；提问回答为夹具，不是真人。
 - 无模型示例：`npm run demo` 固定脚本计算 42、独立文件核验、模型调用 0。
 - 真实安装运行时：Harness tools 0.2.1-rc.3 的工具注册/调用/卸载（Agent 与回答为夹具，模型调用 0）。
-- 本地看板（INTENT-002）：看板专项测试 16/16、全量 48/48；真实浏览器点击「启动」由 `ready` → `waiting-action` 并显示工作单号；6 个真实验收运行在只读模式正常展示；令牌/Origin/Host/CSP/只读/转义/SSE/损坏快照跳过/符号链接目录拒绝/遗留锁错误均有测试；看板 v4 提供三视图（看板/运行记录/输出物）、已登记管线、只读记录管理与 `output/` 输出物打开；插件 gate 支持多选项提问卡（经 DSH 提问卡由人选择）。证据：[看板证据](docs/evidence/2026-10-30-viewer/README.md)。
+- 本地看板（INTENT-002）：看板专项测试 17/17、全量 49/49；真实浏览器点击「启动」由 `ready` → `waiting-action` 并显示工作单号；6 个真实验收运行在只读模式正常展示；令牌/Origin/Host/CSP/只读/转义/SSE/损坏快照跳过/符号链接目录拒绝/遗留锁错误均有测试；看板 v5 提供三视图（看板/运行记录/输出物）、自动跟随与输出物内嵌预览、分类/排序/置顶/加载更多、只读记录管理与 `output/` 输出物打开；`npm run quickstart` 零配置演示；随仓库带 DSH skill；插件 gate 支持多选项提问卡（经 DSH 提问卡由人选择）。证据：[看板证据](docs/evidence/2026-10-30-viewer/README.md)。
 - 打包与隔离 profile：验收所用包由 `npm pack` 从提交 `67e0f7c` 生成、对该提交字节可复现（sha256 `735236398884813a…`；此后提交只改文档/证据，`src/` 与 `package.json` 未改，故当前 HEAD 的包哈希因文档更新而不同）；临时 `DSH_HOME` 内 add / 配置合成 / remove 回执见[追加验收证据](docs/evidence/2026-10-30-harness-adverse/pack-install-receipt.json)。
 - 真实模型 + 真实界面（隔离 profile，真实提问卡）：
   - 三条主要场景（混合管线、重启后恢复、脚本节点）于 `66d252f` 验证；

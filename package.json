@@ -35,7 +35,8 @@
   "scripts": {
     "test": "node --test",
     "demo": "node examples/script-demo.js",
-    "view": "node src/viewer.js"
+    "view": "node src/viewer.js",
+    "quickstart": "node scripts/quickstart.mjs"
   },
   "license": "MIT"
 }

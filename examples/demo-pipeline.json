@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "演示：三步简报",
+  "intent": "零配置演示管线：写入一份简报文件，由人确认，然后核验交付。用来快速认识看板与 orch_* 工作流，不调用模型。",
+  "nodes": [
+    { "id": "write", "type": "task", "mode": "agent", "instruction": "写入 demo/note.md，内容为 ready。", "proofs": [{ "path": "demo/note.md", "contains": "ready" }] },
+    { "id": "review", "type": "gate", "question": "接受这份演示交付吗？（是真人在 Harness 里点，不是看板代点）" }
+  ],
+  "deliveries": [{ "path": "demo/note.md", "contains": "ready", "minBytes": 5 }]
+}
