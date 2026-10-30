@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-10-30T13:05:37+08:00",
+  "package": {
+    "name": "dsh-orchestrator",
+    "version": "0.1.0-alpha.1"
+  },
+  "pack": {
+    "command": "npm pack --pack-destination <tmp>",
+    "tarball": "dsh-orchestrator-0.1.0-alpha.1.tgz",
+    "sha256": "a7e8c4d60f43e668a4d2a42c3f2086ac469c0707a1cda7ff2059cf3bd8a506d7",
+    "packedFiles": 129,
+    "reproducible": true
+  },
+  "packagedCli": {
+    "command": "node <tmp>/package/src/cli.js doctor <workspace>",
+    "exitCode": 0,
+    "output": "[pass] node: Node 22.22.2\n[pass] workspace: /Users/yiliwen/开发/news-briefing\n[pass] pipelines: 2 条有效登记管线；0 项警告\n[pass] runs: 1 次运行；0 项警告\n[pass] outputs: 5 个输出物；0 项警告\n[pass] skill: 工作区包含 DSH skill；自动发现需在宿主确认\n[unknown] harness: 本地文件不能证明插件已加载或会话工作区匹配；请在 Harness 核对 orch_status / orch_claim 等工具与项目路径\n"
+  },
+  "isolatedProfileInstall": "NOT_RUN: no standalone dsh CLI in this session (app-managed profile); use app plugin manager or a machine with dsh CLI",
+  "liveProfile": "NOT_CHANGED",
+  "boundary": "packaged CLI only; no npm publish, no live profile install, no restart"
+}

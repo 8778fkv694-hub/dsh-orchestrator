@@ -11,6 +11,7 @@ export async function driveScripts(engine, run, owner, executors, { signal = new
     // A previously issued action is unknown. Only this driver's newly-issued action may run.
     const execute = Object.hasOwn(executors, node.id) ? executors[node.id] : undefined;
     if (typeof execute !== 'function') throw new Error(`No trusted script executor for ${node.id}`);
+    state = engine.claim(run, owner, state.active.operation, 'trusted-script-driver', 'trusted-script-driver');
     await execute({ node, operation: state.active.operation, signal });
     signal.throwIfAborted();
     state = engine.complete(run, owner, state.active.operation);

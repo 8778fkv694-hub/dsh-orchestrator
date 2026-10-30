@@ -1,0 +1,15 @@
+{
+  "testProcessesStopped": [
+    39331,
+    40652
+  ],
+  "temporaryFixtureRemoved": true,
+  "newsProjectGitClean": true,
+  "retainedViewer": {
+    "port": 49834,
+    "readOnly": true,
+    "workspace": "news-briefing"
+  },
+  "existingHarnessProfileModified": false,
+  "published": false
+}

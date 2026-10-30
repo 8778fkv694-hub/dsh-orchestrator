@@ -9,7 +9,7 @@ description: 使用 DSH Orchestrator 插件的标准配方：建立受控管线�
 
 ## 0. 先看环境
 
-1. 确认会话里有 `orch_create / orch_next / orch_complete / orch_gate / orch_status / orch_pause / orch_resume / orch_cancel / orch_reconcile / orch_recover` 十个工具。
+1. 确认会话里有 `orch_create / orch_next / orch_claim / orch_complete / orch_gate / orch_status / orch_pause / orch_resume / orch_cancel / orch_reconcile / orch_recover` 十一个工具；旧插件缺 orch_claim 时说明版本差异，不伪造接手记录。
 2. 工作区应有一个项目目录；插件状态在 `<工作区>/.orchestrator/`，登记管线在 `<工作区>/pipelines/`，输出物在 `<工作区>/output/`。
 3. 看板：`orch view <工作区>`（只读 + 调度；页面会打印带 token 的本机 URL）。演示：`npm run quickstart`。
 
@@ -25,7 +25,7 @@ description: 使用 DSH Orchestrator 插件的标准配方：建立受控管线�
 然后：
 
 1. `orch_create` 提交定义；插件会弹出**候选意图确认卡**，必须由用户本人确认；拒绝/无回答都不算接受。
-2. `orch_next` 取当前工作单，记下 `operation ID`；执行对应步骤，写入声明的证据文件。
+2. `orch_next` 取当前工作单，记下 `operation ID`。确认本次新派发且从未执行后，`orch_claim(run, operation)` 记录接手；用宿主已授权工具执行并写入证据。读回旧工作单或已有接手时先核对执行端，不能接手后直接重跑；claim 不是执行授权或交付证据。
 3. `orch_complete` 提交该 operation（只提交你真实做过的步骤）。
 4. 人工门：`orch_gate` 会按定义弹出确认卡或选项卡；**由用户点**；把所选值如实回报。
 5. 交付：继续 `orch_next` 走完，`orch_status` 检查交付文件是否核验通过。
@@ -39,6 +39,9 @@ description: 使用 DSH Orchestrator 插件的标准配方：建立受控管线�
 - `orch_reconcile`：外部动作的 verified/stopped 必须由人确认。
 
 ## 3. 看板
+
+- `orch doctor <工作区>`：只读环境诊断，不建立运行；插件加载与宿主会话匹配需实际核对，unknown 不当通过。
+- 运行详情“执行衔接”显示 owner、接手记录、最近状态事件、证据缺项与下一处理人；复制续跑提示到所属会话。看板不自动发送消息；最后状态事件不是执行端心跳。
 
 - `orch view <工作区>`：看板总览/运行记录/输出物；默认自动跟随最新输出预览，`/` 搜索，`Esc` 关抽屉。
 - 只读模式加 `--read-only`。

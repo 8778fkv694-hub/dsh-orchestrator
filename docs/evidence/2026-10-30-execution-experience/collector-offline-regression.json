@@ -1,0 +1,213 @@
+{
+  "status": "PASS",
+  "networkCalls": 0,
+  "realNewsRuns": 0,
+  "sourceChecks": [
+    {
+      "file": "/Users/yiliwen/开发/news-briefing/scripts/collect.sh",
+      "riskyPatterns": []
+    },
+    {
+      "file": "/Users/yiliwen/开发/news-briefing/scripts/render.sh",
+      "riskyPatterns": []
+    },
+    {
+      "file": "/Users/yiliwen/开发/news-briefing/scripts/news-collector/collect-with-fallback.sh",
+      "riskyPatterns": []
+    }
+  ],
+  "cases": [
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "live-fixture",
+      "exitCode": 1,
+      "expectedExit": "nonzero"
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "degraded-fixture",
+      "exitCode": 1,
+      "expectedExit": "nonzero"
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/opt/homebrew/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "before",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "C",
+      "version": "after",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "live-fixture",
+      "exitCode": 1,
+      "expectedExit": "nonzero"
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "degraded-fixture",
+      "exitCode": 1,
+      "expectedExit": "nonzero"
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "before",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "live-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "degraded-fixture",
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "shell": "/bin/bash",
+      "locale": "en_US.UTF-8",
+      "version": "after",
+      "mode": "extract-failed-fixture",
+      "exitCode": 1,
+      "expectedExit": 1
+    }
+  ]
+}

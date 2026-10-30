@@ -2,8 +2,10 @@
 import fs from 'node:fs';
 import { Orchestrator, validate, digest } from './core.js';
 import { startViewer } from './viewer.js';
+import { inspectWorkspace } from './doctor.js';
+import { instantiateTemplate } from './template.js';
 
-const USAGE = 'Usage: orch <create|status|next|complete|pause|resume|cancel|recover|view> <workspace> [run|definition.json] [operation|--confirm]';
+const USAGE = 'Usage: orch <doctor|instantiate|create|status|next|complete|pause|resume|cancel|recover|view> <workspace|template.json> [run|values.json|definition.json] [operation|--confirm]';
 
 function parseViewArgs(rest) {
   const options = { readOnly: rest.includes('--read-only') };
@@ -33,6 +35,20 @@ async function main() {
     return;
   }
   if (!action || !workspace) throw new Error(USAGE);
+  if (action === 'instantiate') {
+    if (args.length > 1) throw new Error('用法：orch instantiate <模板.json> [参数.json]');
+    const template = JSON.parse(fs.readFileSync(workspace, 'utf8'));
+    const values = args[0] ? JSON.parse(fs.readFileSync(args[0], 'utf8')) : {};
+    console.log(JSON.stringify(instantiateTemplate(template, values).definition, null, 2));
+    return;
+  }
+  if (action === 'doctor') {
+    if (args.some(arg => arg !== '--json') || args.length > 1) throw new Error('用法：orch doctor <工作区> [--json]');
+    const report = inspectWorkspace(workspace);
+    console.log(args.includes('--json') ? JSON.stringify(report, null, 2) : report.checks.map(c => `[${c.status}] ${c.id}: ${c.detail}`).join('\n'));
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
   if (action === 'view') {
     const viewer = await startViewer({ workspace, ...parseViewArgs(args) });
     console.log(`orch 看板：${viewer.url}`);

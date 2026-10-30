@@ -30,7 +30,7 @@ export function apply(ctx, config = {}) {
   const describe = state => {
     const n = state.definition.nodes[state.index];
     return { ...state, currentStep: n ?? null, guidance: state.status === 'waiting-action'
-      ? 'Use the host-authorized tools to perform this step. Record this operation ID. Submit only after producing the declared artifacts; repeated status/recover calls do not authorize re-execution.'
+      ? state.active?.claim ? 'This work order has a recorded claimant. Inspect the executing side before continuing; never treat the claim as completion or permission to replay. Submit declared artifacts with the original operation ID.' : 'Call orch_claim with this operation ID before starting new work through host-authorized tools. A claim records handoff, not permission or proof of execution. Submit only after producing declared artifacts; status/recover do not authorize replay.'
       : state.status === 'cancel-requested' ? 'External action may still be running. Stop or inspect it through the host. Human reconciliation is required; this is not confirmed cancellation.'
       : state.status === 'waiting-human' ? 'Call orch_gate to ask the actual person with the gate options; never invent an answer.' : 'Inspect status before advancing.' };
   };
@@ -46,7 +46,8 @@ export function apply(ctx, config = {}) {
         if (result.accepted === false) {
           return [
             { type: 'text', text: '候选意图未被接受 / Candidate not accepted' },
-            { type: 'text', text: `原因 / Reason: ${result.reason ?? 'human rejected candidate'}\n需要重新确认 / Confirm again when ready.` }
+            { type: 'text', text: `原因 / Reason: ${result.reason ?? 'human rejected candidate'}\n需要重新确认 / Confirm again when ready.` },
+            { type: 'text', text: '```json\n' + JSON.stringify(result) + '\n```' }
           ];
         }
         const total = result.definition?.nodes?.length ?? 0;
@@ -88,6 +89,7 @@ export function apply(ctx, config = {}) {
     ['status', 'Observe persisted progress, decisions and evidence for this session.']
   ]) tool(`orch_${action}`, explanation, runArgs, async (a, x) => describe(getEngine()[action === 'status' ? 'read' : action](a.run, owner(x))));
   tool('orch_complete', 'Submit current operation for independent file verification. Model claims are not evidence. Does not execute the next step.', schema({ run: str, operation: str }), async (a, x) => describe(getEngine().complete(a.run, owner(x), a.operation)));
+  tool('orch_claim', 'Record that this live session has taken the current work order before starting it. Not execution permission, heartbeat or completion evidence. Never claim/replay unknown work after interruption; inspect and reconcile first.', schema({ run: str, operation: str }), async (a, x) => describe(getEngine().claim(a.run, owner(x), a.operation, x.agent.id ?? owner(x), 'harness-tool')));
   tool('orch_gate', 'Ask the real person to decide the pending gate (uses its options when declared; otherwise confirm/reject). No answer or rejection never means approval.', runArgs, async (a, x) => {
     const e = getEngine(), s = e.read(a.run, owner(x));
     if (s.status !== 'waiting-human') throw new Error('No pending human gate');

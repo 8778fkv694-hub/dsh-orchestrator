@@ -1,0 +1,338 @@
+
+> dsh-orchestrator@0.1.0-alpha.1 test
+> node --test
+
+TAP version 13
+# Subtest: full lifecycle verifies independent artifacts
+ok 1 - full lifecycle verifies independent artifacts
+  ---
+  duration_ms: 70.431792
+  type: 'test'
+  ...
+# Subtest: raw or mismatched intent cannot create a run
+ok 2 - raw or mismatched intent cannot create a run
+  ---
+  duration_ms: 8.67625
+  type: 'test'
+  ...
+# Subtest: definition schema rejects unknown nodes fields versions paths and numbers
+ok 3 - definition schema rejects unknown nodes fields versions paths and numbers
+  ---
+  duration_ms: 0.258083
+  type: 'test'
+  ...
+# Subtest: definition and receipt returned to caller are detached snapshots
+ok 4 - definition and receipt returned to caller are detached snapshots
+  ---
+  duration_ms: 27.291667
+  type: 'test'
+  ...
+# Subtest: another session cannot inspect or mutate runs
+ok 5 - another session cannot inspect or mutate runs
+  ---
+  duration_ms: 36.788875
+  type: 'test'
+  ...
+# Subtest: missing, stale operation and unchanged files cannot advance
+ok 6 - missing, stale operation and unchanged files cannot advance
+  ---
+  duration_ms: 73.291958
+  type: 'test'
+  ...
+# Subtest: wrong evidence and missing final delivery refuse done
+ok 7 - wrong evidence and missing final delivery refuse done
+  ---
+  duration_ms: 48.938042
+  type: 'test'
+  ...
+# Subtest: restart returns original action and cannot reissue it
+ok 8 - restart returns original action and cannot reissue it
+  ---
+  duration_ms: 24.106541
+  type: 'test'
+  ...
+# Subtest: pause and resume preserve unknown effect action
+ok 9 - pause and resume preserve unknown effect action
+  ---
+  duration_ms: 27.91975
+  type: 'test'
+  ...
+# Subtest: active cancellation remains requested until human reconciliation
+ok 10 - active cancellation remains requested until human reconciliation
+  ---
+  duration_ms: 32.242875
+  type: 'test'
+  ...
+# Subtest: recovery with verified output advances only with evidence
+ok 11 - recovery with verified output advances only with evidence
+  ---
+  duration_ms: 43.537
+  type: 'test'
+  ...
+# Subtest: gate rejects forged or stale decisions; human rejection cancels
+ok 12 - gate rejects forged or stale decisions; human rejection cancels
+  ---
+  duration_ms: 26.888875
+  type: 'test'
+  ...
+# Subtest: accepted gate continues without repeating confirmation
+ok 13 - accepted gate continues without repeating confirmation
+  ---
+  duration_ms: 27.411084
+  type: 'test'
+  ...
+# Subtest: symlink evidence, state directory, and state files refused
+ok 14 - symlink evidence, state directory, and state files refused
+  ---
+  duration_ms: 7.626709
+  type: 'test'
+  ...
+# Subtest: write failure cannot emit an unsaved work order
+ok 15 - write failure cannot emit an unsaved work order
+  ---
+  duration_ms: 7.132625
+  type: 'test'
+  ...
+# Subtest: concurrent writer lock fails without changing snapshot
+ok 16 - concurrent writer lock fails without changing snapshot
+  ---
+  duration_ms: 7.902125
+  type: 'test'
+  ...
+# Subtest: preflight references pin exact file contents
+ok 17 - preflight references pin exact file contents
+  ---
+  duration_ms: 7.470667
+  type: 'test'
+  ...
+# Subtest: replacing the state directory with a symlink after construction is refused
+ok 18 - replacing the state directory with a symlink after construction is refused
+  ---
+  duration_ms: 7.557667
+  type: 'test'
+  ...
+# Subtest: verified reconciliation after cancellation cannot resume the cancelled workflow
+ok 19 - verified reconciliation after cancellation cannot resume the cancelled workflow
+  ---
+  duration_ms: 29.751791
+  type: 'test'
+  ...
+# Subtest: option gate validates declared values and records the selected option
+ok 20 - option gate validates declared values and records the selected option
+  ---
+  duration_ms: 21.234125
+  type: 'test'
+  ...
+# Subtest: invalid gate options are rejected at definition time
+ok 21 - invalid gate options are rejected at definition time
+  ---
+  duration_ms: 0.888125
+  type: 'test'
+  ...
+# Subtest: SIGKILL after action issuance preserves operation without replay
+ok 22 - SIGKILL after action issuance preserves operation without replay
+  ---
+  duration_ms: 192.356584
+  type: 'test'
+  ...
+# Subtest: trusted script driver completes without a model
+ok 23 - trusted script driver completes without a model
+  ---
+  duration_ms: 88.691459
+  type: 'test'
+  ...
+# Subtest: driver never replays failed executor after restart
+ok 24 - driver never replays failed executor after restart
+  ---
+  duration_ms: 48.450917
+  type: 'test'
+  ...
+# Subtest: driver forwards cancellation and does not certify completion
+ok 25 - driver forwards cancellation and does not certify completion
+  ---
+  duration_ms: 62.059208
+  type: 'test'
+  ...
+# Subtest: adapter calls host question seam with full restatement and exact definition before creation
+ok 26 - adapter calls host question seam with full restatement and exact definition before creation
+  ---
+  duration_ms: 24.534667
+  type: 'test'
+  ...
+# Subtest: installed runtime probes decode rendered successful and rejected results
+ok 27 - installed runtime probes decode rendered successful and rejected results
+  ---
+  duration_ms: 20.349541
+  type: 'test'
+  ...
+# Subtest: rejection/no provider/no answer never creates an accepted run
+ok 28 - rejection/no provider/no answer never creates an accepted run
+  ---
+  duration_ms: 10.248292
+  type: 'test'
+  ...
+# Subtest: plugin full mixed lifecycle with evidence, gate and final delivery
+ok 29 - plugin full mixed lifecycle with evidence, gate and final delivery
+  ---
+  duration_ms: 151.080166
+  type: 'test'
+  ...
+# Subtest: plugin refuses missing caller and cross-session status
+ok 30 - plugin refuses missing caller and cross-session status
+  ---
+  duration_ms: 15.073584
+  type: 'test'
+  ...
+# Subtest: plugin unload aborts outstanding wait without accepting candidate
+ok 31 - plugin unload aborts outstanding wait without accepting candidate
+  ---
+  duration_ms: 4.252584
+  type: 'test'
+  ...
+# Subtest: no answer at human gate leaves pending gate and original operation
+ok 32 - no answer at human gate leaves pending gate and original operation
+  ---
+  duration_ms: 32.472042
+  type: 'test'
+  ...
+# Subtest: plugin gate asks the host with declared options and records the selected option
+ok 33 - plugin gate asks the host with declared options and records the selected option
+  ---
+  duration_ms: 29.069083
+  type: 'test'
+  ...
+# Subtest: embedded client requires visible confirmation, supports dismissal and submits once
+ok 34 - embedded client requires visible confirmation, supports dismissal and submits once
+  ---
+  duration_ms: 3.71175
+  type: 'test'
+  ...
+# Subtest: embedded confirmation refuses a changed selection or revision and respects read-only
+ok 35 - embedded confirmation refuses a changed selection or revision and respects read-only
+  ---
+  duration_ms: 3.604334
+  type: 'test'
+  ...
+# Subtest: output toolbar refresh calls the API and displays success
+ok 36 - output toolbar refresh calls the API and displays success
+  ---
+  duration_ms: 1.770333
+  type: 'test'
+  ...
+# Subtest: closing an automatically followed output stays closed across refreshes and can reopen
+ok 37 - closing an automatically followed output stays closed across refreshes and can reopen
+  ---
+  duration_ms: 1.17
+  type: 'test'
+  ...
+# Subtest: loadRuns skips invalid and symlink state files with warnings
+ok 38 - loadRuns skips invalid and symlink state files with warnings
+  ---
+  duration_ms: 7.28125
+  type: 'test'
+  ...
+# Subtest: page requires the per-process token and escapes dynamic text
+ok 39 - page requires the per-process token and escapes dynamic text
+  ---
+  duration_ms: 26.309042
+  type: 'test'
+  ...
+# Subtest: api/runs returns summaries in real time shape
+ok 40 - api/runs returns summaries in real time shape
+  ---
+  duration_ms: 4.846584
+  type: 'test'
+  ...
+# Subtest: pipeline registry shows registered definitions and skips invalid ones
+ok 41 - pipeline registry shows registered definitions and skips invalid ones
+  ---
+  duration_ms: 6.717334
+  type: 'test'
+  ...
+# Subtest: pipeline index supplies category, tags, pin and usage stats
+ok 42 - pipeline index supplies category, tags, pin and usage stats
+  ---
+  duration_ms: 2.741917
+  type: 'test'
+  ...
+# Subtest: outputs are listed read-only and served only from output/
+ok 43 - outputs are listed read-only and served only from output/
+  ---
+  duration_ms: 10.714708
+  type: 'test'
+  ...
+# Subtest: run detail verifies current artifact bytes against the receipt
+ok 44 - run detail verifies current artifact bytes against the receipt
+  ---
+  duration_ms: 2.521667
+  type: 'test'
+  ...
+# Subtest: action endpoints require POST, token header, allowed origin and read-write mode
+ok 45 - action endpoints require POST, token header, allowed origin and read-write mode
+  ---
+  duration_ms: 5.151208
+  type: 'test'
+  ...
+# Subtest: scheduling actions follow the core state machine and keep state persisted
+ok 46 - scheduling actions follow the core state machine and keep state persisted
+  ---
+  duration_ms: 56.189833
+  type: 'test'
+  ...
+# Subtest: read-only mode hides actions and rejects them
+ok 47 - read-only mode hides actions and rejects them
+  ---
+  duration_ms: 6.088917
+  type: 'test'
+  ...
+# Subtest: read-only GET traffic does not mutate state files
+ok 48 - read-only GET traffic does not mutate state files
+  ---
+  duration_ms: 5.2795
+  type: 'test'
+  ...
+# Subtest: SSE pushes an initial snapshot and another snapshot after a state change
+ok 49 - SSE pushes an initial snapshot and another snapshot after a state change
+  ---
+  duration_ms: 169.991833
+  type: 'test'
+  ...
+# Subtest: symlinked .orchestrator is refused for listing and single-run reads
+ok 50 - symlinked .orchestrator is refused for listing and single-run reads
+  ---
+  duration_ms: 15.248459
+  type: 'test'
+  ...
+# Subtest: structurally corrupt state file is skipped and does not break API or live push
+ok 51 - structurally corrupt state file is skipped and does not break API or live push
+  ---
+  duration_ms: 1408.374459
+  type: 'test'
+  ...
+# Subtest: stale lock blocks actions with a friendly, path-free error and manual recovery works
+ok 52 - stale lock blocks actions with a friendly, path-free error and manual recovery works
+  ---
+  duration_ms: 24.881375
+  type: 'test'
+  ...
+# Subtest: direct src/viewer.js entry works without an explicit token (regression)
+ok 53 - direct src/viewer.js entry works without an explicit token (regression)
+  ---
+  duration_ms: 133.677792
+  type: 'test'
+  ...
+# Subtest: orch view CLI prints a loopback URL and stops on SIGINT
+ok 54 - orch view CLI prints a loopback URL and stops on SIGINT
+  ---
+  duration_ms: 114.499042
+  type: 'test'
+  ...
+1..54
+# tests 54
+# suites 0
+# pass 54
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2406.367209

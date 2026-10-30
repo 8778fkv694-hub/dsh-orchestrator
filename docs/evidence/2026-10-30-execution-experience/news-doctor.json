@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "workspace": "/Users/yiliwen/开发/news-briefing",
+  "checks": [
+    {
+      "id": "node",
+      "status": "pass",
+      "detail": "Node 22.22.2"
+    },
+    {
+      "id": "workspace",
+      "status": "pass",
+      "detail": "/Users/yiliwen/开发/news-briefing"
+    },
+    {
+      "id": "pipelines",
+      "status": "pass",
+      "detail": "1 条有效登记管线；0 项警告"
+    },
+    {
+      "id": "runs",
+      "status": "pass",
+      "detail": "0 次运行；0 项警告"
+    },
+    {
+      "id": "outputs",
+      "status": "pass",
+      "detail": "0 个输出物；0 项警告"
+    },
+    {
+      "id": "skill",
+      "status": "pass",
+      "detail": "工作区包含 DSH skill；自动发现需在宿主确认"
+    },
+    {
+      "id": "harness",
+      "status": "unknown",
+      "detail": "本地文件不能证明插件已加载或会话工作区匹配；请在 Harness 核对 orch_status / orch_claim 等工具与项目路径"
+    }
+  ]
+}

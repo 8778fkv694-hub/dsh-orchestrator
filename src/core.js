@@ -136,6 +136,16 @@ export class Orchestrator {
       s.receipts.push({ node: n.id, operation, evidence }); this.event(s, 'action-verified', { node: n.id, operation }); s.index++; s.active = null; s.status = 'ready';
     });
   }
+  claim(id, owner, operation, actor, source = 'trusted-local-caller') {
+    text(actor, 'executor actor'); text(source, 'executor source');
+    return this.transaction(id, owner, s => {
+      if (s.status !== 'waiting-action' || s.active?.operation !== operation) fail('stale or unavailable work order');
+      if (s.active.claim) fail('work order already claimed; inspect before executing');
+      const claim = { actor, source, at: new Date().toISOString() };
+      s.active.claim = claim;
+      this.event(s, 'action-claimed', { operation, node: s.active.node, ...claim });
+    });
+  }
   decide(id, owner, operation, answer, human) {
     return this.transaction(id, owner, s => {
       const node = s.definition.nodes[s.index];

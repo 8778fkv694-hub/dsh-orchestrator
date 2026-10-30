@@ -1,0 +1,21 @@
+{
+  "package": "dsh-orchestrator-0.1.0-alpha.1.tgz",
+  "sha256": "789efe19dbaa58eddfbca77565eb14cb4719393acb75878781b8f72319eea841",
+  "packedFiles": 121,
+  "offlineInstall": "PASS",
+  "installedBinDoctor": "PASS",
+  "doctorCreatedRunDirectory": false,
+  "hostPluginStatus": "unknown",
+  "installedPackageDemo": {
+    "status": "done",
+    "modelCalls": 0,
+    "evidence": [
+      {
+        "path": "sum.json",
+        "sha256": "82a984dda4159e2e94a3fd7b93727b2cba1a209537257f0df0d3d2f6fbb35a9b",
+        "bytes": 10
+      }
+    ]
+  },
+  "temporaryFilesCleaned": true
+}

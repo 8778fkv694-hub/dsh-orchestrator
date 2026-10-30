@@ -1,0 +1,9 @@
+{
+  "src/viewer.js": "10c86d80097273b8d00e6ffeb67bbe1b3238e495335010791516c75e3b25130d",
+  "src/plugin.js": "095cd708fb19cd23121c8bceb2185448f46918b80c8a625b63430adb79027576",
+  "scripts/harness-result.cjs": "2119bb28924c8304637ffceefc29b4f4fbe46251f381f928877aae60bc923c18",
+  "scripts/verify-harness-runtime.cjs": "bfe9c2f7a0e4437821d953fe1776ef58f8bd8634577382ef961274de960dd02b",
+  "scripts/verify-harness-adverse.cjs": "481c0c041ba5c56f5084138ffeb71e1b6f761a6c06a4284cf215f0063000bc0e",
+  "test/plugin.test.js": "f3d5a15dcd5eb61acd6283eb8674f1cbeb3c0387643f5438a8b145e1c5249ae2",
+  "test/viewer-client.test.js": "d55620229247d3e35aae84f2c35539fcc9fd47377c5d9f2f3a01c836619bc297"
+}

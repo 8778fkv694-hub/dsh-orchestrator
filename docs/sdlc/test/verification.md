@@ -1,5 +1,11 @@
 # 验证记录
 
+最新追加：INTENT-009 执行体验与真实新闻落地。源码完整回归 **64/64**（12:44 重跑）；新增 `orch_claim`、只读 `orch doctor`、`orch instantiate` 模板/运行隔离与看板接手详情；装机 Harness tools 0.2.1-rc.5 夹具探针 11 工具/7 调用（`runtime.json`）；干净包离线安装/doctor/demo 通过（`clean-install.json`）；新闻采集收尾行 C.UTF-8 locale 缺陷修复并以 24 例离线回归验证（`collector-offline-regression.json`，0 网络/0 真实新闻运行）；news-briefing 真实端到端运行 `ee8e7255-d008-4b99-a47a-46164862b145` 到达 **done**（9/9），3 份交付哈希核验一致、`--verify` 通过，新闻事实未逐条核查。见[执行体验证据](../../evidence/2026-10-30-execution-experience/README.md)。
+
+最新追加：INTENT-008 运行状态动效全量 **55/55**；真实 Harness 内启动/暂停/继续通过，运行时两帧可见动态条高度和步骤环位置变化，暂停后静态。系统减少动态设置未切换实测，CSS 已覆盖元素和伪元素。见[动效证据](../../evidence/2026-10-30-run-motion/README.md)。
+
+最新追加：INTENT-007 当前源码落地复核，**54/54**；装机 tools 0.2.1-rc.5 服务正向/反例通过（合成答复），真实 Harness 看板交互修复复测通过；新闻项目 0 运行/0 输出物。详见[计划、问题与改进结果](implementation-audit-2026-10-30.md)。下文 49/49 等为历史轮次记录。
+
 2026-10-30。开发预览；追加的真实界面反例验收已完成，证据边界见下。
 
 | 层级 | 已实际运行的内容 | 结果/边界 |

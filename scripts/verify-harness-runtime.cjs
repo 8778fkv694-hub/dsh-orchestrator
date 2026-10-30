@@ -1,5 +1,6 @@
 /** Integration probe for an installed Harness runtime. Fixture answers are NOT human E2E acceptance. */
 const { createRequire } = require('node:module');
+const { parseHarnessResult } = require('./harness-result.cjs');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), assert = require('node:assert/strict');
 (async () => {
   if (!process.argv[2]) throw new Error('Pass the installed app.asar/dsh/package.json; run using Electron in Node mode');
@@ -19,16 +20,18 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     const answerer = ctx.on('user-questions/request', async (request) => ({ answers: request.questions.map(q => ({ id: q.id, selected: ['confirm'] })) }));
     const fiber = ctx.plugin(plugin, { workspace: root }); await fiber; fibers.push(fiber);
     const names = ctx.tools.schemas(agent).map(t => t.name).filter(n => n.startsWith('orch_'));
-    assert.equal(names.length, 10);
+    assert.equal(names.length, 11);
     let serial = 0;
     async function call(name, args) {
       const result = await ctx.tools.execute({ callId: `fixture-${++serial}`, name, arguments: args, agent, signal: new AbortController().signal });
       if (result.isError) throw new Error(JSON.stringify(result));
-      return JSON.parse(result.content.filter(b => b.type === 'text').at(-1).text);
+      return parseHarnessResult(result);
     }
     const definition = JSON.parse(fs.readFileSync(path.join(__dirname, '../examples/pipeline.json'), 'utf8'));
     let s = await call('orch_create', { definition }); s = await call('orch_next', { run: s.id });
     assert.equal(s.status, 'waiting-action'); const op = s.active.operation;
+    s = await call('orch_claim', { run: s.id, operation: op });
+    assert.equal(s.active.claim.source, 'harness-tool');
     fs.writeFileSync(path.join(root, 'note.md'), 'project-ready');
     s = await call('orch_complete', { run: s.id, operation: op }); s = await call('orch_next', { run: s.id });
     assert.equal(s.status, 'waiting-human'); s = await call('orch_gate', { run: s.id }); s = await call('orch_next', { run: s.id });

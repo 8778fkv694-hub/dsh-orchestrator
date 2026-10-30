@@ -1,0 +1,66 @@
+[
+  {
+    "shell": "/opt/homebrew/bin/bash",
+    "locale": "C",
+    "form": "unbraced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  },
+  {
+    "shell": "/opt/homebrew/bin/bash",
+    "locale": "C",
+    "form": "braced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  },
+  {
+    "shell": "/opt/homebrew/bin/bash",
+    "locale": "en_US.UTF-8",
+    "form": "unbraced",
+    "exitCode": 127,
+    "stdout": "",
+    "stderr": "/opt/homebrew/bin/bash: line 3: fetch_status�: unbound variable\n"
+  },
+  {
+    "shell": "/opt/homebrew/bin/bash",
+    "locale": "en_US.UTF-8",
+    "form": "braced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  },
+  {
+    "shell": "/bin/bash",
+    "locale": "C",
+    "form": "unbraced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  },
+  {
+    "shell": "/bin/bash",
+    "locale": "C",
+    "form": "braced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  },
+  {
+    "shell": "/bin/bash",
+    "locale": "en_US.UTF-8",
+    "form": "unbraced",
+    "exitCode": 127,
+    "stdout": "",
+    "stderr": "/bin/bash: line 2: fetch_status�: unbound variable\n"
+  },
+  {
+    "shell": "/bin/bash",
+    "locale": "en_US.UTF-8",
+    "form": "braced",
+    "exitCode": 0,
+    "stdout": "ok）\n",
+    "stderr": ""
+  }
+]

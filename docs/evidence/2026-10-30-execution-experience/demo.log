@@ -1,0 +1,5 @@
+
+> dsh-orchestrator@0.1.0-alpha.1 demo
+> node examples/script-demo.js
+
+{"status":"done","modelCalls":0,"evidence":[{"path":"sum.json","sha256":"82a984dda4159e2e94a3fd7b93727b2cba1a209537257f0df0d3d2f6fbb35a9b","bytes":10}]}

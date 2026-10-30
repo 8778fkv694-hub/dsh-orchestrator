@@ -1,0 +1,1 @@
+{"status":"PASS","layer":"installed-harness-runtime-with-synthetic-answers","checks":["rejected-intent","no-answer","missing-delivery","cancel-request-unknown","no-advance","no-answer-reconciliation","confirmed-stopped","cancel-then-verified-stays-cancelled","unregister"],"calls":15,"hostVersion":"0.2.1-rc.5","modelCalls":0,"actualGUIAdversePaths":"NOT_RUN"}

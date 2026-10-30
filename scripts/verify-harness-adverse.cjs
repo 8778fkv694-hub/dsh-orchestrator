@@ -1,5 +1,6 @@
 /** Actual installed Harness services, synthetic question-provider fixture; not a GUI acceptance test. */
 const { createRequire } = require('node:module');
+const { parseHarnessResult } = require('./harness-result.cjs');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), assert = require('node:assert/strict');
 (async () => {
   if (!process.argv[2]) throw new Error('Pass app.asar/dsh/package.json');
@@ -20,7 +21,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
     async function call(name, args, expectedError = false) {
       const result = await ctx.tools.execute({ callId: `adverse-${++serial}`, name, arguments: args, agent, signal: new AbortController().signal });
       assert.equal(!!result.isError, expectedError, JSON.stringify(result));
-      return expectedError ? result : JSON.parse(result.content.filter(x => x.type === 'text').at(-1).text);
+      return expectedError ? result : parseHarnessResult(result);
     }
     const definition = JSON.parse(fs.readFileSync(path.join(__dirname, '../examples/pipeline.json'), 'utf8'));
     answer = 'reject'; assert.equal((await call('orch_create', { definition })).accepted, false);

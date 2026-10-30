@@ -75,6 +75,12 @@ The skill contains recipes for creating runs, work orders, human gates, pause/re
 
 ## Install in an isolated Harness profile
 
+Compile the parameterized example with `node src/cli.js instantiate examples/parameterized-template.json > /tmp/review-pipeline.json`; optionally add a values JSON file as the third argument. Strings/enums and bounded integers are supported. Each compilation creates a new `runKey`; artifact paths must stay under `output/<runKey>/` or `artifacts/<runKey>/`. Chosen values appear in the candidate intent for confirmation. Compilation only outputs a definition; it does not execute tasks or confirm intent. Reuse an explicit values file to retain preferences. Parameter substitution is not shell escaping or execution permission.
+
+For read-only setup checks, run `node src/cli.js doctor <workspace>` (or `orch doctor <workspace>` after installation); add `--json` for structured output. It does not create runs. Host plugin loading and the session workspace remain explicitly `unknown` until checked in Harness.
+
+Run details show the owning session, an explicit handoff record, the latest state event, work-order age, missing current proofs and a copyable continuation prompt. The new `orch_claim(run, operation)` records handoff before a confirmed unexecuted work order starts. Inspect and reconcile interrupted or unknown work first. A claim is neither permission, a worker heartbeat nor completion evidence. Existing runs remain compatible; existing installed plugins need updating to expose this new tool. The dashboard does not send messages or execute work.
+
 Requires Node 22+ and Harness plugin-bundle support. Runtime integration has been checked against `0.2.1-rc.3`; other versions require verification.
 
 Download the repository and run:
@@ -101,7 +107,7 @@ Check that profile's surface, model, question service and port configuration bef
 
 Ask the agent to read `examples/pipeline.json`, adapt it to your goal, then call `orch_create`. The plugin displays the restatement, steps and acceptance criteria and asks the actual person through the host question service. Rejection, timeout or no answer never establishes an accepted run.
 
-Typical flow: `orch_create` → `orch_next` → perform the work using authorized host tools → `orch_complete` → `orch_next`. Use `orch_gate` at human gates and `orch_status` to inspect progress.
+Typical flow: `orch_create` → `orch_next` → `orch_claim` for a confirmed unexecuted new work order → perform the work using authorized host tools → `orch_complete` → `orch_next`. Use `orch_gate` at human gates and `orch_status` to inspect progress. Inspect unknown effects before recovering an existing work order; do not claim and replay it blindly.
 
 `orch_pause` and `orch_resume` control scheduling. `orch_recover` reads existing state and action IDs without replay. Inspect the execution endpoint and artifacts before `orch_reconcile` asks the person to attest verification or actual stoppage. `orch_cancel` records a request when external work may still be active; it does not prove that work has stopped.
 

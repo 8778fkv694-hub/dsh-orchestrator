@@ -192,6 +192,25 @@ test('api/runs returns summaries in real time shape', async () => {
   assert.ok(body.warnings.some(w => w.includes('not-a-run.json')));
 });
 
+test('execution detail reports missing proof and handoff separately from completion', async () => {
+  const run = createRun(workspace, def({ nodes: [{ id: 'task', type: 'task', mode: 'agent', instruction: 'write proof', proofs: [{ path: 'handoff-proof.txt' }] }] }));
+  const engine = new Orchestrator(workspace);
+  let state = engine.next(run.id, owner);
+  const read = () => fetch(`${origin}/api/runs/${run.id}`, { headers: withToken() }).then(r => r.json());
+  let detail = await read();
+  assert.equal(detail.execution.handoff, 'unrecorded');
+  assert.equal(detail.pendingProofs[0].status, 'missing');
+  assert.ok(detail.continuationPrompt.includes(workspace));
+  engine.claim(run.id, owner, state.active.operation, 'fixture-worker', 'test');
+  detail = await read();
+  assert.equal(detail.execution.handoff, 'recorded');
+  assert.equal(detail.execution.executionConfirmed, false);
+  fs.writeFileSync(path.join(workspace, 'handoff-proof.txt'), 'proof');
+  detail = await read();
+  assert.equal(detail.pendingProofs[0].status, 'present');
+  assert.equal(detail.run.status, 'waiting-action');
+});
+
 test('pipeline registry shows registered definitions and skips invalid ones', async () => {
   const list = await fetch(`${origin}/api/runs`, { headers: withToken() }).then(r => r.json());
   assert.equal(list.pipelines.length, 1);

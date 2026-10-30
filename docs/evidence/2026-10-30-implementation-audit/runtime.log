@@ -1,0 +1,5 @@
+SyntaxError: Unexpected token '`', "```json
+{""... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at call (/Users/yiliwen/开发/dsh-orchestrator/scripts/verify-harness-runtime.cjs:27:19)
+    at async /Users/yiliwen/开发/dsh-orchestrator/scripts/verify-harness-runtime.cjs:30:13

@@ -1,0 +1,19 @@
+{
+  "scope": "read-only real news project inspection",
+  "runs": 0,
+  "runWarnings": [],
+  "pipelines": [
+    {
+      "file": "pipelines/news-briefing.json",
+      "name": "新闻简报试跑 · 数字员工新闻管线移植",
+      "nodes": 9,
+      "deliveries": 3
+    }
+  ],
+  "pipelineWarnings": [],
+  "outputCount": 0,
+  "outputs": {
+    "files": [],
+    "warnings": []
+  }
+}

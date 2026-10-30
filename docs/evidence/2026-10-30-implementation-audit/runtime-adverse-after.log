@@ -1,0 +1,4 @@
+Error: Harness result has no structured object or JSON payload
+    at parseHarnessResult (/Users/yiliwen/开发/dsh-orchestrator/scripts/harness-result.cjs:10:9)
+    at call (/Users/yiliwen/开发/dsh-orchestrator/scripts/verify-harness-adverse.cjs:24:39)
+    at async /Users/yiliwen/开发/dsh-orchestrator/scripts/verify-harness-adverse.cjs:27:38

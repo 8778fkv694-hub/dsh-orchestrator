@@ -68,6 +68,12 @@ Skill 里含建管线、取工作单、人工门、暂停/继续/取消/对账�
 
 ## 常见问题
 
+参数化模板示例：`node src/cli.js instantiate examples/parameterized-template.json > /tmp/review-pipeline.json`。可再给一个参数 JSON 文件作为第三个参数；支持有边界的整数和字符串/枚举，未知参数报错。每次实例化生成独立 `runKey`，交付路径必须位于 `output/<runKey>/` 或 `artifacts/<runKey>/`，本次参数写进候选意图供确认。它只输出定义，不执行任务、不默认为已确认；如需沿用偏好，显式复用上次的参数文件，仍确认本次定义。参数不是 shell 转义或命令授权。
+
+先运行只读诊断：`node src/cli.js doctor <工作区>`（或已安装后的 `orch doctor <工作区>`；机器可读输出加 `--json`）。它不会建立运行；宿主插件加载与会话工作区无法仅凭本地文件确认，会明确标为 `unknown`。
+
+运行详情现在显示所属会话、显式接手记录、最后状态事件、工作单时长、当前证据缺项，以及“复制到所属会话继续处理”。新版本增加 `orch_claim(run, operation)`：宿主会话在确认从未执行的新工作单上记录接手，再执行并提交证据；中断或未知效果先对账。接手不等于执行许可、执行端心跳或完成。旧运行兼容；旧插件需更新后才有新工具，本看板不会自动发送消息或代执行任务。
+
 | 现象 | 原因与处理 |
 |---|---|
 | `quickstart` 报 Node 版本 | 需要 Node 22+；升级后重试 |
@@ -111,7 +117,7 @@ dsh plugin --profile orch-acceptance add /绝对路径/dsh-orchestrator-0.1.0-al
 
 让Agent读取本仓库的 `examples/pipeline.json`，用你自己的目标改写候选定义，并调用 `orch_create`。插件会显示AI复述、步骤及验收条件，通过宿主提问让你确认。拒绝、无答案或超时均不建立正式运行。
 
-工具流：`orch_create` → `orch_next` → 按工作单使用已获授权的宿主工具 → `orch_complete` → `orch_next`。遇到人工门调用 `orch_gate`；状态查看用 `orch_status`。
+工具流：`orch_create` → `orch_next` → 确认新工作单未执行后 `orch_claim` → 按工作单使用已获授权的宿主工具 → `orch_complete` → `orch_next`。遇到人工门调用 `orch_gate`；状态查看用 `orch_status`。恢复已有工作单须先核对未知效果，不直接接单重跑。
 
 暂停/继续：`orch_pause`、`orch_resume`。恢复读回：`orch_recover`。未知效果先检查执行端与文件，再由 `orch_reconcile` 请求人确认已核验或已停止。`orch_cancel` 遇到在途动作只记取消请求，不能证明外部进程已经停止。
 

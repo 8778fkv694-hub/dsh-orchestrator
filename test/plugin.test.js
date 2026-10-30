@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { apply } from '../src/plugin.js';
+import { createRequire } from 'node:module';
+const { parseHarnessResult } = createRequire(import.meta.url)('../scripts/harness-result.cjs');
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-plugin-')); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const tools = new Map(), disposers = [], asked = []; let respond = 'confirm';
@@ -15,6 +17,26 @@ function fixture(t) {
   return { root, call, tools, asked, exec, def, set: v => respond = v, dispose: () => disposers.forEach(d => d()) };
 }
 test('adapter calls host question seam with full restatement and exact definition before creation', async t => { const f = fixture(t); const s = await f.call('orch_create', { definition: f.def }); assert.equal(s.confirmation.source, 'harness.userQuestions'); assert.ok(f.asked[0].questions[0].question.includes(f.def.intent)); assert.ok(f.asked[0].questions[0].question.includes('out.txt')); assert.equal(s.status, 'ready'); });
+test('host claim records the actual caller and status reads never imply a claim', async t => {
+  const f = fixture(t); let s = await f.call('orch_create', { definition: f.def });
+  s = await f.call('orch_next', { run: s.id }); const operation = s.active.operation;
+  assert.equal((await f.call('orch_status', { run: s.id })).active.claim, undefined);
+  s = await f.call('orch_claim', { run: s.id, operation });
+  assert.equal(s.active.claim.actor, 'agent'); assert.equal(s.active.claim.source, 'harness-tool');
+  assert.equal(s.receipts.length, 0);
+  await assert.rejects(f.call('orch_claim', { run: s.id, operation }), /already claimed/);
+});
+test('installed runtime probes decode rendered successful and rejected results', async t => {
+  const f = fixture(t);
+  for (const answer of ['confirm', 'reject']) {
+    f.set(answer);
+    const result = await f.call('orch_create', { definition: f.def });
+    const content = f.tools.get('orch_create').output.render({}, result);
+    assert.deepEqual(parseHarnessResult({ content }), result);
+  }
+  assert.deepEqual(parseHarnessResult({ content: [{ type: 'text', text: '{"legacy":true}' }] }), { legacy: true });
+  assert.throws(() => parseHarnessResult({ content: [{ type: 'text', text: 'not JSON' }] }), /no structured/);
+});
 test('rejection/no provider/no answer never creates an accepted run', async t => { const f = fixture(t); f.set('reject'); assert.equal((await f.call('orch_create', { definition: f.def })).accepted, false); for (const answer of ['none', 'error']) { f.set(answer); await assert.rejects(f.call('orch_create', { definition: f.def })); } assert.equal(fs.existsSync(path.join(f.root, '.orchestrator')), false); });
 test('plugin full mixed lifecycle with evidence, gate and final delivery', async t => { const f = fixture(t); let s = await f.call('orch_create', { definition: f.def }); s = await f.call('orch_next', { run: s.id }); assert.ok(s.guidance.includes('host-authorized')); await assert.rejects(f.call('orch_complete', { run: s.id, operation: s.active.operation })); fs.writeFileSync(path.join(f.root, 'out.txt'), 'ok'); s = await f.call('orch_complete', { run: s.id, operation: s.active.operation }); s = await f.call('orch_next', { run: s.id }); assert.equal(s.status, 'waiting-human'); s = await f.call('orch_gate', { run: s.id }); s = await f.call('orch_next', { run: s.id }); assert.equal(s.status, 'done'); assert.equal(f.asked.length, 2); });
 test('plugin refuses missing caller and cross-session status', async t => { const f = fixture(t); await assert.rejects(f.call('orch_create', { definition: f.def }, { signal: f.exec.signal })); const s = await f.call('orch_create', { definition: f.def }); await assert.rejects(f.call('orch_status', { run: s.id }, { ...f.exec, agent: { session: { id: 'other' } } })); });

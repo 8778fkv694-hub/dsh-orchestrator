@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "id": "9638e52d-e97c-4d23-9827-8e4f6f8d76bd",
+  "owner": "motion-demo-fixture",
+  "revision": 3,
+  "definition": {
+    "version": 1,
+    "name": "运行动态演示 · 可启动、暂停、继续",
+    "intent": "合成演示：观察运行状态动效与暂停反馈，不执行真实任务、不调用模型。",
+    "nodes": [
+      {
+        "id": "write",
+        "type": "task",
+        "mode": "agent",
+        "instruction": "写入 demo/note.md，内容为 ready。",
+        "proofs": [
+          {
+            "path": "demo/note.md",
+            "contains": "ready"
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "type": "gate",
+        "question": "接受这份演示交付吗？（是真人在 Harness 里点，不是看板代点）"
+      }
+    ],
+    "deliveries": [
+      {
+        "path": "demo/note.md",
+        "contains": "ready",
+        "minBytes": 5
+      }
+    ]
+  },
+  "definitionHash": "85513ff81b6326671193ae82e7efd89f94c7c21add3a75e5dd9963633b6113a9",
+  "references": {},
+  "confirmation": {
+    "answer": "confirm",
+    "source": "synthetic-motion-demo-NOT-HUMAN",
+    "definitionHash": "85513ff81b6326671193ae82e7efd89f94c7c21add3a75e5dd9963633b6113a9"
+  },
+  "status": "waiting-action",
+  "index": 0,
+  "active": {
+    "operation": "bfe64bd0-a329-421b-9d13-4571e7ba9286",
+    "node": "write",
+    "baseline": [
+      {
+        "path": "demo/note.md",
+        "sha256": null
+      }
+    ]
+  },
+  "receipts": [],
+  "events": [
+    {
+      "at": "2026-10-30T04:08:32.411Z",
+      "type": "created"
+    },
+    {
+      "at": "2026-10-30T04:09:01.874Z",
+      "type": "action-issued",
+      "operation": "bfe64bd0-a329-421b-9d13-4571e7ba9286",
+      "node": "write"
+    },
+    {
+      "at": "2026-10-30T04:09:21.066Z",
+      "type": "paused"
+    },
+    {
+      "at": "2026-10-30T04:09:35.796Z",
+      "type": "resumed"
+    }
+  ],
+  "deliveryBaseline": [
+    {
+      "path": "demo/note.md",
+      "sha256": null
+    }
+  ]
+}

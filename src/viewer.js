@@ -14,6 +14,7 @@ import http from 'node:http';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Orchestrator, validate } from './core.js';
+import { executionObservation, continuationPrompt } from './observation.js';
 
 const RUN_ID = /^[a-f0-9-]{36}$/;
 const MAX_READ = 4 * 1024 * 1024;
@@ -105,6 +106,10 @@ function validateState(state, id) {
   }
   if (state.active !== null && state.active !== undefined) {
     if (typeof state.active !== 'object' || Array.isArray(state.active) || typeof state.active.operation !== 'string') bad('active');
+    if (state.active.claim !== undefined) {
+      const c = state.active.claim;
+      if (!c || typeof c !== 'object' || typeof c.actor !== 'string' || typeof c.source !== 'string' || !Number.isFinite(Date.parse(c.at))) bad('active.claim');
+    }
   }
   return state;
 }
@@ -378,6 +383,7 @@ function summarize(state) {
     owner: state.owner,
     currentStep: current ? { id: current.id, type: current.type } : null,
     activeOperation: state.active?.operation ?? null,
+    execution: executionObservation(state),
     updatedAt: state.events[state.events.length - 1]?.at ?? null,
     receiptCount: receipts.length,
     recoveredCount: receipts.filter(r => r.recovered).length,
@@ -469,7 +475,15 @@ function runSnapshot(workspace, readOnly) {
 
 function runDetail(workspace, id) {
   const state = readStateFile(workspace, id);
-  return { run: state, artifacts: collectArtifacts(workspace, state) };
+  const node = state.definition.nodes[state.index];
+  const pendingProofs = (node?.proofs ?? []).map(p => {
+    const file = artifactStatus(workspace, p.path);
+    const baseline = state.active?.baseline?.find(b => b.path === p.path);
+    let status = file.status;
+    if (status === 'unrecorded') status = baseline?.sha256 === file.currentSha256 ? 'unchanged' : 'present';
+    return { path: p.path, status };
+  });
+  return { run: state, artifacts: collectArtifacts(workspace, state), execution: executionObservation(state), pendingProofs, continuationPrompt: continuationPrompt(workspace, state) };
 }
 
 function applyAction(workspace, id, action) {
@@ -520,6 +534,7 @@ const APP_JS = String.raw`(function () {
   var selectedRunId = null;
   var selectedPipelineFile = null;
   var selectedOutputPath = null;
+  var outputFollowDismissed = false;
   var runDetail = null;
   var view = ['board', 'records', 'outputs'].indexOf(saved.view) >= 0 ? saved.view : 'board';
   var filter = ['all', 'needs', 'active', 'done', 'cancelled'].indexOf(saved.filter) >= 0 ? saved.filter : 'all';
@@ -539,6 +554,8 @@ const APP_JS = String.raw`(function () {
   var pollTimer = null;
   var evtSource = null;
   var connectionWarned = false;
+  var confirmationResolve = null;
+  var actionInFlight = false;
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -629,7 +646,24 @@ const APP_JS = String.raw`(function () {
   }
   function statusChip(status, compact) {
     var meta = statusOf(status);
-    return '<span class="statusChip ' + meta.tone + (compact ? ' compact' : '') + '"><span class="dot"></span>' + esc(meta.zh) + '</span>';
+    return '<span class="statusChip ' + meta.tone + (compact ? ' compact' : '') + '" data-run-status="' + esc(status) + '"><span class="dot"></span>' + esc(meta.zh) + '</span>';
+  }
+  function activityHtml(status, compact) {
+    var states = {
+      ready: ['准备就绪', '启动后显示当前步骤动态。', '○'],
+      'waiting-action': ['进行中 · 等待执行结果', '当前步骤已派发，收到结果后更新进度。', ''],
+      paused: ['已暂停', '已停止调度；已派发的动作可能仍在执行。', 'Ⅱ'],
+      'waiting-human': ['等待你的决定', '请在 Harness 回答当前提问。', '◆'],
+      'cancel-requested': ['等待取消对账', '请在 Harness 核对外部动作是否停止。', '!'],
+      done: ['交付已核验', '所有步骤与交付核验已完成。', '✓'],
+      cancelled: ['已取消', '本次运行已结束。', '■']
+    };
+    var state = states[status] || [status, '', '○'];
+    var active = status === 'waiting-action';
+    return '<div class="runActivity ' + (compact ? 'compact ' : '') + (active ? 'is-active' : 'is-static') + ' ' + statusOf(status).tone + '" data-run-status="' + esc(status) + '">' +
+      '<span class="activityMark" aria-hidden="true">' + (active ? '<i></i><i></i><i></i><i></i>' : esc(state[2])) + '</span>' +
+      '<span class="activityText"><span class="activityTitle">' + esc(state[0]) + '</span>' +
+      (compact ? '' : '<span class="activityHint">' + esc(state[1]) + '</span>') + '</span></div>';
   }
   function setLive(on, label) {
     live = on;
@@ -888,7 +922,7 @@ const APP_JS = String.raw`(function () {
     if (run.status === 'waiting-human') hint = '<span class="cardHint attention">需要你决定 · 去 Harness 回答</span>';
     else if (run.status === 'waiting-action') hint = '<span class="cardHint">等待执行者提交</span>';
     else if (run.status === 'cancel-requested') hint = '<span class="cardHint">外部动作状态未知</span>';
-    return '<div class="runCard ' + meta.tone + (selected ? ' selected' : '') + (pinned ? ' pinned' : '') + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
+    return '<div class="runCard ' + meta.tone + (selected ? ' selected' : '') + (pinned ? ' pinned' : '') + '" data-run-status="' + esc(run.status) + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
       '<span class="runStripe"></span>' +
       '<span class="runTop"><span class="statusChip ' + meta.tone + '"><span class="dot"></span>' + esc(meta.zh) + '</span>' +
       (run.recoveredCount ? '<span class="miniTag">恢复×' + run.recoveredCount + '</span>' : '') +
@@ -897,6 +931,7 @@ const APP_JS = String.raw`(function () {
       '<span class="runName">' + esc(run.name) + '</span>' +
       '<span class="runSub">' + esc(run.currentStep ? run.currentStep.id : '—') + ' · ' + run.index + '/' + run.total + ' · ' + shortId(run.id) + '</span>' +
       '<span class="runProgress"><span style="width:' + pct + '%"></span></span>' +
+      activityHtml(run.status, true) +
       hint +
       '</div>';
   }
@@ -968,14 +1003,14 @@ const APP_JS = String.raw`(function () {
   }
   function stepFlow(run, currentIndex, definition) {
     var nodes = definition.nodes;
-    var html = '<div class="flow">';
+    var html = '<div class="flow" data-run-status="' + esc(run ? run.status : 'definition') + '">';
     nodes.forEach(function (node, i) {
       var state = 'pending';
       if (i < currentIndex) state = 'done';
       else if (i === currentIndex) state = 'current';
       if (run && run.status === 'waiting-human' && i === currentIndex) state = 'attention';
       html += '<div class="flowNode ' + state + '" title="' + esc(node.id + ' · ' + node.type) + '">' +
-        '<span class="flowDot">' + (state === 'done' ? icon('check') : (node.type === 'gate' ? '◆' : String(i + 1))) + '</span>' +
+        '<span class="flowDot">' + (state === 'done' ? icon('check') : (run && run.status === 'paused' && i === currentIndex ? 'Ⅱ' : (node.type === 'gate' ? '◆' : String(i + 1)))) + '</span>' +
         '<span class="flowLabel">' + esc(node.id) + '</span></div>';
       if (i < nodes.length - 1) html += '<span class="flowLink"></span>';
     });
@@ -1036,6 +1071,31 @@ const APP_JS = String.raw`(function () {
       '<div class="needActions"><button type="button" class="btn small" data-copy-run="' + esc(id) + '">' + icon('copy') + '<span>复制 runId</span></button>' +
       '<button type="button" class="btn small" data-copy-prompt="' + esc('继续处理 run ' + id) + '">' + icon('copy') + '<span>复制继续提示</span></button></div></div>';
   }
+  function executionPanel() {
+    var info = runDetail.execution;
+    if (!info) return '';
+    var elapsed = function (at) { return '<span data-elapsed-at="' + esc(at || '') + '">' + esc(elapsedText(at)) + '</span>'; };
+    var claim = info.claim;
+    var eventLabels = { created: '创建运行', 'action-issued': '工作单已发出', 'action-claimed': '接手已记录', 'action-verified': '步骤证据已核验', gate: '等待人工决定', 'human-decision': '人工决定已记录', paused: '调度已暂停', resumed: '调度已继续', 'cancel-requested': '已请求取消', cancelled: '已取消', done: '交付已核验', checked: '检查通过', 'human-reconciled': '对账已记录' };
+    var html = '<div class="executionPanel"><div class="sectionHead">执行衔接</div><dl class="executionFacts">' +
+      '<dt>所属会话</dt><dd class="mono">' + esc(info.ownerSession) + '</dd>' +
+      '<dt>接手记录</dt><dd>' + (claim ? esc(claim.actor) + ' · ' + esc(fmt(claim.at)) : '未记录接手；不能据此判断外部动作是否已开始') + '</dd>' +
+      '<dt>最后状态事件</dt><dd>' + esc(eventLabels[info.lastEventType] || info.lastEventType) + ' · ' + elapsed(info.lastEventAt) + '前</dd>' +
+      (info.issuedAt ? '<dt>本工作单已发出</dt><dd>' + elapsed(info.issuedAt) + '（含暂停时间）</dd>' : '') +
+      '<dt>下一步由谁处理</dt><dd>' + esc(info.nextActor) + '</dd></dl>' +
+      '<div class="executionNext">' + esc(info.nextAction) + '</div>';
+    var proofs = runDetail.pendingProofs || [];
+    if (proofs.length) html += '<ul class="checklist">' + proofs.map(function (p) { return '<li><span class="mono">' + esc(p.path) + '</span><span class="dim">' + esc(({ missing: '尚未生成', unchanged: '仍是派发前内容', present: '文件存在，待提交核验', unsafe: '路径不安全', invalid: '文件不合规', error: '读取失败' })[p.status] || p.status) + '</span></li>'; }).join('') + '</ul>';
+    html += '<div class="hint">接手记录不代表正在执行；最后事件不是执行端心跳。计时仅表示距该事件的时长。</div>';
+    if (runDetail.continuationPrompt && !['done', 'cancelled'].includes(runDetail.run.status)) html += '<button type="button" class="btn small" data-copy-prompt="' + esc(runDetail.continuationPrompt) + '">复制到所属会话继续处理</button>';
+    return html + '</div>';
+  }
+  function elapsedText(at, now) {
+    var time = Date.parse(at);
+    if (!Number.isFinite(time)) return '未知';
+    var seconds = Math.max(0, Math.floor(((now == null ? Date.now() : now) - time) / 1000));
+    return seconds < 60 ? seconds + ' 秒' : Math.floor(seconds / 60) + ' 分钟';
+  }
   function renderRunDrawer() {
     var run = runDetail && runDetail.run ? runDetail.run : null;
     if (!run) return '<div class="drawerLoading"><span class="spinner"></span>读取运行详情…</div>';
@@ -1044,8 +1104,10 @@ const APP_JS = String.raw`(function () {
       '<div class="drawerMeta mono">' + esc(run.id) + '</div></div>' +
       '<button type="button" class="iconBtn" data-close-drawer aria-label="关闭详情">' + icon('close') + '</button></div>';
     html += '<div class="drawerStatus">' + statusChip(run.status) + '<span class="dim">owner ' + esc(shortId(run.owner)) + ' · revision ' + run.revision + ' · 更新 ' + esc(ago(run.events.length ? run.events[run.events.length - 1].at : null)) + '</span></div>';
+    html += activityHtml(run.status, false);
     html += '<div class="drawerIntent">' + esc(run.definition.intent) + '</div>';
     html += actionsHtml(run);
+    html += executionPanel();
     html += waitingGuidance(run);
     html += '<div class="drawerSection"><div class="sectionHead">进度 <span class="dim">' + run.index + '/' + run.definition.nodes.length + '</span></div>' + stepFlow(run, run.index, run.definition) + '</div>';
     html += '<div class="drawerSection"><div class="sectionHead">步骤详情</div>' + nodeDetails(run.definition, run.index) + '</div>';
@@ -1134,6 +1196,8 @@ const APP_JS = String.raw`(function () {
     $$('[data-act]').forEach(function (el) { el.onclick = function () { runAction(el.getAttribute('data-act')); }; });
   }
   function closeDrawer() {
+    finishConfirmation(false);
+    if (selectedOutputPath) outputFollowDismissed = true;
     selectedRunId = null;
     selectedPipelineFile = null;
     selectedOutputPath = null;
@@ -1141,6 +1205,7 @@ const APP_JS = String.raw`(function () {
     render();
   }
   function selectOutput(path) {
+    outputFollowDismissed = false;
     if (selectedOutputPath === path) return;
     selectedOutputPath = path;
     selectedRunId = null;
@@ -1175,27 +1240,52 @@ const APP_JS = String.raw`(function () {
     }).catch(function (error) { toast('读取运行详情失败：' + error.message, true); renderDrawer(); });
   }
   function actionLabel(action) { return { next: '启动', pause: '暂停', resume: '继续', cancel: '取消' }[action] || action; }
-  function runAction(action) {
-    if (!selectedRunId) return;
+  function finishConfirmation(accepted) {
+    $('#actionConfirmation').hidden = true;
+    var resolve = confirmationResolve;
+    confirmationResolve = null;
+    if (resolve) resolve(accepted);
+  }
+  function confirmAction(action) {
+    finishConfirmation(false);
+    $('#actionConfirmationText').textContent = action === 'next'
+      ? '启动只会发出下一步工作单。请回到 Harness 执行步骤并提交证据。'
+      : '取消是终态动作；外部动作在途时只记录取消请求，仍需在 Harness 核对是否停止。';
+    $('#confirmAction').textContent = action === 'next' ? '确认启动' : '确认取消';
+    $('#actionConfirmation').hidden = false;
+    $('#dismissAction').focus();
+    return new Promise(function (resolve) { confirmationResolve = resolve; });
+  }
+  async function runAction(action) {
+    if (!selectedRunId || snapshot.readOnly || actionInFlight) return;
     var id = selectedRunId;
-    if (action === 'next' && !window.confirm('启动只会在内核里发出下一步工作单，不执行外部动作。继续？')) return;
-    if (action === 'cancel' && !window.confirm('取消是终态动作；若外部动作在途，只记录取消请求，不证明外部已停止。继续？')) return;
+    var revision = runDetail && runDetail.run.revision;
+    if (action === 'next' || action === 'cancel') {
+      if (!await confirmAction(action)) return;
+      if (id !== selectedRunId || !runDetail || runDetail.run.id !== id || runDetail.run.revision !== revision) {
+        toast('运行已变化，请查看最新状态后重新选择动作。', true);
+        return;
+      }
+    }
+    if (actionInFlight) return;
+    actionInFlight = true;
     $$('#drawer [data-act]').forEach(function (b) { b.disabled = true; });
-    api('/api/runs/' + encodeURIComponent(id) + '/' + action, { method: 'POST' }).then(function (body) {
+    return api('/api/runs/' + encodeURIComponent(id) + '/' + action, { method: 'POST' }).then(function (body) {
       toast(actionLabel(action) + '成功：' + (body.statusZh || body.status) + (body.operation ? ' · 工作单 ' + shortId(body.operation) : ''));
       loadRunDetail();
       refresh();
     }).catch(function (error) {
       toast(actionLabel(action) + '失败：' + error.message, true);
       $$('#drawer [data-act]').forEach(function (b) { b.disabled = false; });
-    });
+    }).finally(function () { actionInFlight = false; });
   }
   function refresh() {
     return api('/api/runs').then(function (body) {
       snapshot = body;
       render();
       if (selectedRunId) loadRunDetail();
-    }).catch(function () {});
+      return true;
+    }).catch(function (error) { toast('刷新失败：' + error.message, true); return false; });
   }
   function durationText(run) {
     if (!run.startedAt || !run.updatedAt) return '—';
@@ -1306,7 +1396,7 @@ const APP_JS = String.raw`(function () {
     }
     host.innerHTML = html;
     wireSortBars();
-    var refresh = $('#refreshOutputs'); if (refresh) refresh.onclick = function () { refresh().then(function () { toast('已刷新'); }); };
+    var refreshButton = $('#refreshOutputs'); if (refreshButton) refreshButton.onclick = function () { return refresh().then(function (ok) { if (ok) toast('已刷新'); }); };
     $$('[data-open-file]').forEach(function (el) { el.onclick = function (event) { event.stopPropagation(); window.open(outputUrl(el.getAttribute('data-open-file')), '_blank', 'noopener'); }; });
     $$('[data-copy-filepath]').forEach(function (el) { el.onclick = function (event) { event.stopPropagation(); copyText(el.getAttribute('data-copy-filepath'), '输出物路径 '); }; });
     $$('[data-output]').forEach(function (el) {
@@ -1317,6 +1407,7 @@ const APP_JS = String.raw`(function () {
     var load = host.querySelector('[data-load-outputs]'); if (load) load.onclick = function () { page.outputs += 24; persistSettings(); render(); };
   }
   function setView(next) {
+    if (next !== view) outputFollowDismissed = false;
     view = next;
     persistSettings();
     render();
@@ -1329,7 +1420,7 @@ const APP_JS = String.raw`(function () {
     btn.setAttribute('aria-pressed', autoFollow ? 'true' : 'false');
   }
   function autoSelectLatestOutput() {
-    if (!autoFollow || view !== 'outputs') return;
+    if (!autoFollow || outputFollowDismissed || view !== 'outputs') return;
     var files = sortedOutputs();
     if (!files.length) return;
     var exists = files.some(function (file) { return file.path === selectedOutputPath; });
@@ -1381,12 +1472,20 @@ const APP_JS = String.raw`(function () {
     searchTerm = event.target.value.trim().toLowerCase();
     renderLibrary(); renderBoard();
   });
-  $('#refresh').addEventListener('click', function () { refresh().then(function () { toast('已刷新'); }); });
+  $('#refresh').addEventListener('click', function () { refresh().then(function (ok) { if (ok) toast('已刷新'); }); });
+  $('#confirmAction').onclick = function () { finishConfirmation(true); };
+  $('#dismissAction').onclick = function () { finishConfirmation(false); };
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') closeDrawer();
+    if (event.key === 'Escape') {
+      if (confirmationResolve) finishConfirmation(false);
+      else closeDrawer();
+    }
     if (event.key === '/' && document.activeElement !== $('#search')) { event.preventDefault(); $('#search').focus(); }
   });
   render();
+  setInterval(function () {
+    $$('[data-elapsed-at]').forEach(function (el) { el.textContent = elapsedText(el.getAttribute('data-elapsed-at')); });
+  }, 1000);
   setLive(false, '连接中');
   connect();
 })();`;
@@ -1495,6 +1594,22 @@ main.layout.drawerOpen{grid-template-columns:250px minmax(0,1fr) min(400px,36vw)
 .statusChip.done{color:var(--green);border-color:#2b5a42}
 .statusChip.cancelled{color:var(--red);border-color:#5f3038}
 .statusChip.paused{color:var(--muted)}
+.statusChip[data-run-status="waiting-action"] .dot{animation:activityPulse 1.8s ease-in-out infinite}
+.runActivity{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #2c4a78;border-radius:10px;background:linear-gradient(110deg,#142136,#18212e);color:var(--blue);margin:10px 0 12px}
+.runActivity.compact{gap:8px;padding:5px 0 1px;margin:0;border:0;background:none;font-size:10.5px}
+.activityMark{display:flex;align-items:center;justify-content:center;gap:3px;width:38px;height:30px;flex:0 0 38px;font-size:20px;font-weight:600}
+.compact .activityMark{width:25px;height:18px;flex-basis:25px;font-size:13px;gap:2px}
+.activityMark i{display:block;width:4px;height:22px;background:currentColor;border-radius:3px;transform-origin:center;animation:activityBars 1.1s ease-in-out infinite}
+.compact .activityMark i{width:3px;height:14px}
+.activityMark i:nth-child(2){animation-delay:-.8s}.activityMark i:nth-child(3){animation-delay:-.5s}.activityMark i:nth-child(4){animation-delay:-.2s}
+.activityText{display:flex;flex-direction:column;gap:4px;min-width:0}.activityTitle{font-size:13px;font-weight:600}.compact .activityTitle{font-size:10.5px;font-weight:500}
+.activityHint{font-size:11px;color:var(--muted);line-height:1.6}
+.runActivity.paused,.runActivity.cancelled{color:var(--muted);background:var(--panel);border-color:var(--line2)}
+.runActivity.attention{color:var(--amber);border-color:#5a4a25;background:#211b11}
+.runActivity.ready,.runActivity.done{color:var(--green);border-color:#2b5a42;background:#142219}
+.runActivity.compact{background:none}
+@keyframes activityBars{0%,100%{transform:scaleY(.3);opacity:.5}50%{transform:scaleY(1);opacity:1}}
+@keyframes activityPulse{0%,100%{box-shadow:0 0 0 0 #6ea8fe44}50%{box-shadow:0 0 0 4px #6ea8fe00}}
 .miniTag{font-size:9.5px;color:var(--green);border:1px solid #2b5a42;border-radius:4px;padding:0 4px}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:64px 20px;color:var(--muted);text-align:center}
 .emptyTitle{font-size:14px;color:var(--text)}.emptyHint{font-size:12px;color:var(--dim);max-width:420px;line-height:1.7}
@@ -1518,6 +1633,10 @@ main.layout.drawerOpen{grid-template-columns:250px minmax(0,1fr) min(400px,36vw)
 .needText{color:var(--muted);font-size:11px;line-height:1.65;margin:5px 0 8px}
 .needActions{display:flex;flex-wrap:wrap;gap:6px}
 .drawerSection{margin-top:16px}
+.executionPanel{margin:14px 0;padding:12px;border:1px solid var(--line2);border-radius:10px;background:var(--panel)}
+.executionFacts{display:grid;grid-template-columns:108px minmax(0,1fr);gap:7px;margin:8px 0;font-size:11px}
+.executionFacts dt{color:var(--dim)}.executionFacts dd{margin:0;overflow-wrap:anywhere;color:var(--muted)}
+.executionNext{font-size:12px;color:var(--text);line-height:1.6;margin:10px 0}.executionPanel .btn{margin-top:10px}
 .sectionHead{display:flex;align-items:baseline;gap:8px;color:var(--muted);font-size:11.5px;letter-spacing:.03em;margin-bottom:8px}
 .sectionHead .dim{color:var(--dim);font-size:10.5px}
 .flow{display:flex;align-items:flex-start;flex-wrap:wrap;gap:0;padding:6px 0 2px}
@@ -1526,6 +1645,11 @@ main.layout.drawerOpen{grid-template-columns:250px minmax(0,1fr) min(400px,36vw)
 .flowNode.done .flowDot{border-color:#2b5a42;background:#16241d;color:var(--green)}
 .flowNode.current .flowDot{border-color:var(--accent);background:#16233a;color:#cfe3ff;box-shadow:0 0 0 3px #6ea8fe22}
 .flowNode.attention .flowDot{border-color:var(--amber);background:#241f14;color:var(--amber)}
+.flowDot{position:relative}
+.flow[data-run-status="waiting-action"] .flowNode.current .flowDot::after{content:"";position:absolute;inset:-5px;border:2px solid transparent;border-top-color:var(--accent);border-right-color:var(--accent);border-radius:50%;animation:spin 1.3s linear infinite}
+.flow[data-run-status="paused"] .flowNode.current .flowDot{color:var(--muted);border-color:var(--line2);background:var(--panel);box-shadow:none}
+.flow[data-run-status="cancel-requested"] .flowNode.current .flowDot{color:var(--amber);border-color:var(--amber);background:#241f14;box-shadow:none}
+.flow[data-run-status="cancelled"] .flowNode.current .flowDot{color:var(--dim);border-color:var(--line);background:var(--panel);box-shadow:none}
 .flowLabel{font-size:9.5px;color:var(--dim);max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flowLink{width:14px;height:1px;background:var(--line2);margin-top:12px}
 .nodeList{display:flex;flex-direction:column;gap:4px}
@@ -1561,6 +1685,9 @@ ul.timeline li{display:grid;grid-template-columns:108px 108px 1fr;gap:6px;paddin
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;right:22px;bottom:20px;max-width:min(560px,80vw);background:#1c232c;border:1px solid var(--line2);border-radius:10px;padding:9px 13px;color:var(--text);font-size:12px;opacity:0;transform:translateY(8px);transition:.16s;pointer-events:none;z-index:40}
 .toast.show{opacity:1;transform:none}.toast.error{border-color:#5f3038;color:#f0a3a9}
+.actionConfirmation{position:fixed;inset:0;z-index:50;background:#0009;display:grid;place-items:center;padding:20px}
+.actionConfirmation[hidden]{display:none}
+.actionConfirmationBox{max-width:440px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:24px;box-shadow:0 16px 60px #0008}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .dim{color:var(--dim)}
 code{font-family:ui-monospace,Menlo,monospace;background:#1b2028;border:1px solid var(--line);border-radius:4px;padding:0 4px}
@@ -1607,7 +1734,7 @@ code{font-family:ui-monospace,Menlo,monospace;background:#1b2028;border:1px soli
   .drawer,.drawer.open{position:fixed;inset:0;z-index:30;border-radius:0;margin:0;display:none}
   .drawer.open{display:block;padding:16px;background:var(--bg)}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 `;
 
 function pageHtml(boot) {
@@ -1647,6 +1774,9 @@ function pageHtml(boot) {
   <aside id="drawer" class="drawer" hidden></aside>
 </main>
 <div id="toast" class="toast"></div>
+<div id="actionConfirmation" class="actionConfirmation" role="alertdialog" aria-modal="true" aria-labelledby="actionConfirmationTitle" aria-describedby="actionConfirmationText" hidden>
+  <div class="actionConfirmationBox"><h2 id="actionConfirmationTitle">确认调度动作</h2><p id="actionConfirmationText"></p><div class="actions"><button type="button" class="btn" id="dismissAction">返回</button><button type="button" class="btn primary" id="confirmAction">确认</button></div></div>
+</div>
 <noscript>本页面需要 JavaScript 才能实时显示状态。</noscript>
 <script id="boot" type="application/json">${safeJson(boot)}</script>
 <script src="/app.js?token=${encodeURIComponent(boot.token)}"></script>

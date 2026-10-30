@@ -7,6 +7,22 @@ import { Orchestrator, validate, digest } from '../src/core.js';
 const definition = () => ({ version: 1, name: 'Test', intent: 'Write and verify a report', nodes: [{ id: 'write', type: 'task', mode: 'agent', instruction: 'Produce report', proofs: [{ path: 'out.txt', contains: 'ok' }] }], deliveries: [{ path: 'out.txt', contains: 'ok' }] });
 function fixture(t) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orch-test-')); t.after(() => fs.rmSync(root, { force: true, recursive: true })); const e = new Orchestrator(root), d = definition(); const create = (def = d) => e.create(def, 'owner', { answer: 'confirm', definitionHash: digest(def), source: 'test-fixture' }); return { e, root, d, create, write: data => fs.writeFileSync(path.join(root, 'out.txt'), data) }; }
 test('full lifecycle verifies independent artifacts', t => { const f = fixture(t); let s = f.create(); s = f.e.next(s.id, 'owner'); assert.equal(s.status, 'waiting-action'); f.write('ok'); s = f.e.complete(s.id, 'owner', s.active.operation); s = f.e.next(s.id, 'owner'); assert.equal(s.status, 'done'); assert.equal(s.receipts.at(-1).delivery, true); });
+test('claim binds to a live operation and survives pause and recovery without replay', t => {
+  const f = fixture(t); let s = f.create();
+  assert.throws(() => f.e.claim(s.id, 'owner', 'stale', 'worker'), /unavailable/);
+  s = f.e.next(s.id, 'owner'); const op = s.active.operation;
+  assert.throws(() => f.e.claim(s.id, 'other', op, 'worker'), /another session/);
+  assert.throws(() => f.e.claim(s.id, 'owner', 'stale', 'worker'), /unavailable/);
+  s = f.e.claim(s.id, 'owner', op, 'worker', 'test-fixture');
+  assert.equal(s.active.claim.actor, 'worker'); assert.equal(s.status, 'waiting-action');
+  assert.throws(() => f.e.claim(s.id, 'owner', op, 'worker'), /already claimed/);
+  s = f.e.pause(s.id, 'owner');
+  assert.throws(() => f.e.claim(s.id, 'owner', op, 'worker'), /unavailable/);
+  s = f.e.resume(s.id, 'owner');
+  assert.equal(f.e.recover(s.id, 'owner').active.claim.actor, 'worker');
+  assert.equal(s.active.operation, op);
+  assert.throws(() => f.e.complete(s.id, 'owner', op), /ENOENT/);
+});
 test('raw or mismatched intent cannot create a run', t => { const f = fixture(t); assert.throws(() => f.e.create(f.d, 'owner', {})); assert.throws(() => f.e.create(f.d, 'owner', { answer: 'confirm', definitionHash: 'wrong' })); assert.equal(fs.readdirSync(f.e.dir).length, 0); });
 test('definition schema rejects unknown nodes fields versions paths and numbers', () => { for (const mutate of [d => d.version = 2, d => d.nodes[0].type = 'unknown', d => d.nodes.push(d.nodes[0]), d => d.nodes[0].execute = 'rm', d => d.nodes[0].proofs[0].path = '../secret', d => d.deliveries[0].minBytes = NaN]) { const d = definition(); mutate(d); assert.throws(() => validate(d)); } });
 test('definition and receipt returned to caller are detached snapshots', t => { const f = fixture(t), s = f.create(); f.d.name = 'Changed'; s.definition.name = 'Changed again'; assert.equal(f.e.read(s.id, 'owner').definition.name, 'Test'); });

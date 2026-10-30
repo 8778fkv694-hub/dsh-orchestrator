@@ -8,6 +8,7 @@
     ".": "./src/plugin.js",
     "./core": "./src/core.js",
     "./driver": "./src/driver.js",
+    "./template": "./src/template.js",
     "./viewer": "./src/viewer.js"
   },
   "bin": {
