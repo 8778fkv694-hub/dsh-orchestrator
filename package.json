@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/plugin.js",
     "./core": "./src/core.js",
-    "./driver": "./src/driver.js"
+    "./driver": "./src/driver.js",
+    "./viewer": "./src/viewer.js"
   },
   "bin": {
     "orch": "./src/cli.js"
@@ -33,7 +34,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "demo": "node examples/script-demo.js"
+    "demo": "node examples/script-demo.js",
+    "view": "node src/viewer.js"
   },
   "license": "MIT"
 }

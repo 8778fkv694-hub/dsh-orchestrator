@@ -8,6 +8,7 @@
 | 无模型示例 | npm run demo | 本地固定脚本计算42，独立文件核验，模型调用0 |
 | 真实安装运行时 | scripts/verify-harness-runtime.cjs | Harness tools 0.2.1-rc.3；10工具注册，6次真实工具调用，产物/人工门流程及卸载；Agent和回答为夹具，模型调用0 |
 | 独立安装包/profile | npm pack + 临时DSH_HOME内plugin add、dump-config、remove | 真实安装/合成配置/卸载通过；未启动界面、未修改现有profile |
+| 本地看板（INTENT-002） | `orch view`：只读运行视图、SSE 实时状态、`next/pause/resume/cancel` 调度、令牌/Origin/Host/只读/转义/损坏快照跳过/符号链接目录拒绝 | 专项14/14、全量43/43；真实浏览器点击「启动」由ready→waiting-action并显示工作单；真实验收工作区6个运行只读展示，见[证据](../../evidence/2026-10-30-viewer/README.md)；未做局域网/多用户 |
 | 真实模型/界面端到端 | 混合管线、重启恢复、脚本节点 | [混合](../../evidence/2026-10-30-harness-e2e/mixed-happy-path.json)、[恢复](../../evidence/2026-10-30-harness-e2e/recovery.json)、[脚本](../../evidence/2026-10-30-harness-e2e/script.json)（均运行于 `66d252f`）；拒绝/取消等反例见下一行 |
 | 真实模型/界面反例（追加） | 确认卡reject、skip（无答案）、缺交付、在途取消、对账stopped、对账verified修复回归、人工门reject | 1个会话18/20步、守卫0拒绝；[执行记录](../../evidence/2026-10-30-harness-adverse/README.md)与[汇总](../../evidence/2026-10-30-harness-adverse/ui-adverse.json)，运行于修复提交 `67e0f7c`；8张卡由获授权的验收操作者代点 |
 | 已安装Harness运行时反例 | 拒绝意图、无答案、缺文件、取消待确认、恢复拒绝推进、卸载 | [收据](../../evidence/2026-10-30-harness-e2e/runtime-adverse.json)；使用合成Agent及回答，不是UI真人测试 |
@@ -23,10 +24,11 @@
 - [x] 中断后重启读回相同操作ID；未知效果不重放，真人对账后接续。
 - [x] 取消、门拒绝、未获确认、交付缺项和插件卸载边界有实际证据。取消/对账/交付缺项/门拒绝/未获确认为真实界面证据（[执行记录](../../evidence/2026-10-30-harness-adverse/README.md)）；插件卸载边界为运行时卸载夹具 + 宿主停止后的隔离 profile 移除，**未覆盖活跃 GUI 内热卸载**。
 - [x] 留宿主/插件身份、运行ID、原始输入、步骤、状态、产物哈希及失败未验项（见[汇总](../../evidence/2026-10-30-harness-adverse/ui-adverse.json)的 session / runs / notCovered 节）。
+- [x] 本地看板（INTENT-002）：只读视图 + SSE 实时状态 + 调度入口测试与真实浏览器点击证据；证据见[看板证据](../../evidence/2026-10-30-viewer/README.md)。
 
 ## 可重复命令
 
-npm test；npm run demo；npm pack。运行时探针需使用目标宿主的Node环境及其app.asar/dsh/package.json，示例命令以实际安装路径替换，不读取或复制生产凭据。探针输出明确标humanE2E=NOT_RUN。
+npm test；npm run demo；npm pack；`node src/viewer.js <工作区>`（或 `node --test test/viewer.test.js` 单独跑看板测试）。运行时探针需使用目标宿主的Node环境及其app.asar/dsh/package.json，示例命令以实际安装路径替换，不读取或复制生产凭据。探针输出明确标humanE2E=NOT_RUN。
 
 ## 确认来源的限制
 

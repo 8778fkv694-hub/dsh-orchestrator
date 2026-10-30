@@ -4,4 +4,6 @@
 
 真实 Harness 验收：三条主要场景（混合管线、重启恢复、脚本节点）在 `66d252f` 的隔离真实界面通过；追加反例套件（拒绝、无答案、缺交付、在途取消、对账 stopped、对账 verified 修复回归、人工门拒绝）在 `67e0f7c` 的真实界面通过，见[反例执行记录](../../evidence/2026-10-30-harness-adverse/README.md)。边界：三条主要场景未在修复提交后重跑；确认卡为获授权的验收操作者代点而非机主本人；活跃 GUI 内热卸载未测。
 
+本地看板：`orch view`（INTENT-002 / SPEC-001 v2）已实现并测试（只读 + 实时状态 + next/pause/resume/cancel 调度；不执行任务动作），证据见[看板证据](../../evidence/2026-10-30-viewer/README.md)。
+
 分发：**不发布 npm**（包名 `dsh-orchestrator` 已被他人占用），以公开源码 + 本地打包分发；tag / GitHub Release 待机主决定。不向现有用户 profile 覆盖安装。隔离 profile 安装和移除保留具体收据；用户生产任务不作为测试数据。回滚：退出专用测试宿主，移除专用 profile 里的本插件，保留项目状态；外部任务另行核实停止。

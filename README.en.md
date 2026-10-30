@@ -44,6 +44,18 @@ Typical flow: `orch_create` → `orch_next` → perform the work using authorize
 
 `orch_pause` and `orch_resume` control scheduling. `orch_recover` reads existing state and action IDs without replay. Inspect the execution endpoint and artifacts before `orch_reconcile` asks the person to attest verification or actual stoppage. `orch_cancel` records a request when external work may still be active; it does not prove that work has stopped.
 
+## Local dashboard (read-only + scheduling entry)
+
+```sh
+orch view /absolute/project/path            # loopback only; picks a port and prints a token URL
+orch view /absolute/project/path --port 8899 --read-only   # disable scheduling actions
+npm run view -- /absolute/project/path
+```
+
+The dashboard reads run snapshots from `<project>/.orchestrator/` and shows run status, node progress, event timeline, receipts and artifact hashes (current files are compared with the recorded hashes). It updates in real time (SSE plus file watching, with reconnect and polling fallback) and offers scheduling buttons: **start (issue the next work order) / resume / pause / cancel**. Buttons only persist core scheduling state and show the operation ID; they never execute a task, call a model or start external commands. Intent confirmation, human gates, reconciliation and delivery proof stay in the Harness session.
+
+Security: loopback addresses only (default `127.0.0.1`; `--host` accepts only `127.0.0.1`/`::1`/`localhost` and rejects `0.0.0.0`, LAN and other host names); the access token is generated per process (or supplied via `--token`, at least 16 characters), stays valid for the process lifetime and appears in the startup URL, so do not share it or leak it in screenshots; POST requires the token header plus Origin/Host checks, no CORS, all dynamic text escaped; `--read-only` disables actions. The dashboard is a trusted local operator surface (same trust level as filesystem access), not a security boundary and not a replacement for Harness human confirmation; LAN access, multi-user accounts and permissions are out of scope. If a scheduling action reports a stale lock, confirm no writer remains and handle `<project>/.orchestrator/<runId>.json.lock` manually as described above; the dashboard never deletes locks automatically. Evidence: [docs/evidence/2026-10-30-viewer](docs/evidence/2026-10-30-viewer/README.md).
+
 ## Script-only execution
 
 The core never evaluates instructions or executes arbitrary shell. Trusted applications supply explicit functions keyed by node ID and call `driveScripts` from `dsh-orchestrator/driver`. `examples/script-demo.js` is a zero-model demonstration using an explicitly synthetic confirmation fixture. The driver refuses to replay a previously issued action.
@@ -66,6 +78,6 @@ Unloading unregisters tools and aborts plugin-owned waits. It does not stop exte
 
 ## Engineering records
 
-[Intent](docs/sdlc/plan/intent.md) · [Spec](docs/sdlc/design/spec.md) · [Plan](docs/sdlc/build/plan.md) · [Verification](docs/sdlc/test/verification.md) · [Delivery](docs/sdlc/deploy/delivery.md)
+[Intent](docs/sdlc/plan/intent.md) · [Intent-002 dashboard](docs/sdlc/plan/intent-002-viewer.md) · [Spec](docs/sdlc/design/spec.md) · [Plan](docs/sdlc/build/plan.md) · [Verification](docs/sdlc/test/verification.md) · [Delivery](docs/sdlc/deploy/delivery.md)
 
 [MIT licensed](LICENSE). An independent community project, not an official DeepSeek plugin. Packaging follows the [official guide](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md).

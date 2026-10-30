@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-10-30T00:29:54.325Z",
+  "workspace": "<demo-workspace>",
+  "readOnly": false,
+  "runs": [
+    {
+      "id": "df498d2d-ba14-4377-be81-2a5296b6b01f",
+      "name": "看板演示：等待启动",
+      "intent": "这个运行停在准备就绪，等待在看板上点击启动",
+      "status": "waiting-action",
+      "statusZh": "等待执行结果",
+      "statusEn": "Awaiting result",
+      "tone": "working",
+      "index": 0,
+      "total": 1,
+      "revision": 1,
+      "owner": "demo-operator",
+      "currentStep": {
+        "id": "draft",
+        "type": "task"
+      },
+      "activeOperation": "76202929-2229-4eac-8d94-40e5301b9e8a",
+      "updatedAt": "2026-10-30T00:29:52.769Z",
+      "receiptCount": 0,
+      "recoveredCount": 0,
+      "deliveries": [
+        "draft.md"
+      ],
+      "needsAttention": false
+    },
+    {
+      "id": "be176003-431f-436b-8d3e-6a7e5bd45b9a",
+      "name": "看板演示：取消核对",
+      "intent": "外部动作状态未知，等待人工核对",
+      "status": "cancel-requested",
+      "statusZh": "正在核对取消",
+      "statusEn": "Cancellation unconfirmed",
+      "tone": "attention",
+      "index": 0,
+      "total": 1,
+      "revision": 2,
+      "owner": "demo-operator",
+      "currentStep": {
+        "id": "work",
+        "type": "task"
+      },
+      "activeOperation": "f1dfe5ee-6973-4f01-93dd-25aa16d8f03b",
+      "updatedAt": "2026-10-30T00:27:22.957Z",
+      "receiptCount": 0,
+      "recoveredCount": 0,
+      "deliveries": [
+        "work.txt"
+      ],
+      "needsAttention": true
+    },
+    {
+      "id": "86dca23d-608b-4772-a2a6-9033203b920e",
+      "name": "看板演示：待人工决定",
+      "intent": "这个运行等待人工门确认",
+      "status": "waiting-human",
+      "statusZh": "待您决定",
+      "statusEn": "Your decision needed",
+      "tone": "attention",
+      "index": 0,
+      "total": 1,
+      "revision": 1,
+      "owner": "demo-operator",
+      "currentStep": {
+        "id": "gate",
+        "type": "gate"
+      },
+      "activeOperation": "4cf4b7cc-371c-4de3-85d5-c9f76b9c622e",
+      "updatedAt": "2026-10-30T00:27:22.942Z",
+      "receiptCount": 0,
+      "recoveredCount": 0,
+      "deliveries": [
+        "never.txt"
+      ],
+      "needsAttention": true
+    },
+    {
+      "id": "c3059eb2-8627-4991-beb0-8dad0194fdb0",
+      "name": "看板演示：完成的交付",
+      "intent": "在演示工作区生成 summary.txt，并由收据核验",
+      "status": "done",
+      "statusZh": "交付已核验",
+      "statusEn": "Delivery verified",
+      "tone": "done",
+      "index": 1,
+      "total": 1,
+      "revision": 3,
+      "owner": "demo-operator",
+      "currentStep": null,
+      "activeOperation": null,
+      "updatedAt": "2026-10-30T00:27:22.926Z",
+      "receiptCount": 2,
+      "recoveredCount": 0,
+      "deliveries": [
+        "summary.txt"
+      ],
+      "needsAttention": false
+    }
+  ],
+  "warnings": []
+}

@@ -54,6 +54,23 @@ dsh plugin --profile orch-acceptance add /绝对路径/dsh-orchestrator-0.1.0-al
 
 暂停/继续：`orch_pause`、`orch_resume`。恢复读回：`orch_recover`。未知效果先检查执行端与文件，再由 `orch_reconcile` 请求人确认已核验或已停止。`orch_cancel` 遇到在途动作只记取消请求，不能证明外部进程已经停止。
 
+## 本地管线看板（只读 + 调度入口）
+
+```sh
+orch view /绝对路径/工作区            # 默认只绑定 127.0.0.1，自动选端口并打印带令牌的 URL
+orch view /绝对路径/工作区 --port 8899 --read-only   # 只读模式：关闭调度按钮
+npm run view -- /绝对路径/工作区      # 同上
+```
+
+看板读取该工作区 `.orchestrator/` 下的运行快照，提供：
+
+- 运行列表与状态、节点进度、事件时间线、收据与产物哈希；产物字段会与当前文件比对（一致/已变化/缺失/路径不安全）。
+- 实时状态：状态文件变化后 ≤1 秒推送（SSE + 文件监听，断线自动重连，轮询兜底）。
+- 调度按钮：**启动（发出下一步工作单）/ 继续 / 暂停 / 取消**；只写内核调度状态并显示 operation ID，**不执行任务动作、不调模型、不启动外部命令**。Intent 确认、人工门、对账与交付核验仍在 Harness 会话完成。
+- 安全：只绑定本机回环地址（默认 `127.0.0.1`；`--host` 只接受 `127.0.0.1`/`::1`/`localhost`，拒绝 `0.0.0.0`、LAN 与其他主机名）；访问令牌每进程生成（也可用 `--token` 显式指定，至少 16 字符），进程存活期间有效并出现在启动输出的 URL 中，请勿分享或截图外传；POST 需自定义头令牌 + Origin/Host 校验；无 CORS；动态文本全部转义；`--read-only` 关闭动作端点。
+
+看板是**本地可信操作面**（与本机文件权限同一信任级），不是安全边界，也不替代 Harness 的人类确认；未做局域网访问、多用户与账号权限。若调度按钮返回“遗留锁”错误，按上文锁处理流程确认无写入者后手动处理 `<工作区>/.orchestrator/<runId>.json.lock`，看板不会自动删除锁。截图与证据见 [docs/evidence/2026-10-30-viewer](docs/evidence/2026-10-30-viewer/README.md)。
+
 ## 无模型脚本运行
 
 核心不执行提示词或任意shell。可信应用可以为节点ID提供明确的执行函数，再使用 `dsh-orchestrator/driver` 的 `driveScripts`。示例见 `examples/script-demo.js`；该演示使用标明来源的合成确认夹具，不是实际人的批准记录。恢复时驱动器拒绝重放已有在途动作。
@@ -76,6 +93,6 @@ dsh plugin --profile orch-acceptance remove dsh-orchestrator
 
 ## 研发依据
 
-[Intent](docs/sdlc/plan/intent.md) · [Spec](docs/sdlc/design/spec.md) · [Plan](docs/sdlc/build/plan.md) · [验证](docs/sdlc/test/verification.md) · [交付](docs/sdlc/deploy/delivery.md)
+[Intent](docs/sdlc/plan/intent.md) · [Intent-002 看板](docs/sdlc/plan/intent-002-viewer.md) · [Spec](docs/sdlc/design/spec.md) · [Plan](docs/sdlc/build/plan.md) · [验证](docs/sdlc/test/verification.md) · [交付](docs/sdlc/deploy/delivery.md)
 
 代码采用[MIT许可](LICENSE)。非DeepSeek官方插件，与DeepSeek无隶属关系。插件规范参考[官方文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md)。
