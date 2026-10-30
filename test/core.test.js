@@ -25,3 +25,27 @@ test('concurrent writer lock fails without changing snapshot', t => { const f = 
 test('preflight references pin exact file contents', t => { const f = fixture(t); fs.writeFileSync(path.join(f.root, 'AGENT.md'), 'rules v1'); f.d.references = { agent: 'AGENT.md' }; const s = f.create(); fs.writeFileSync(path.join(f.root, 'AGENT.md'), 'rules v2'); assert.notEqual(s.references.agent, f.e.file('AGENT.md').sha256); assert.throws(() => f.e.next(s.id, 'owner'), /document changed/); });
 test('replacing the state directory with a symlink after construction is refused', t => { const f = fixture(t), s = f.create(); const moved = path.join(f.root, 'old-state'); fs.renameSync(f.e.dir, moved); fs.symlinkSync(moved, f.e.dir); assert.throws(() => f.e.read(s.id, 'owner'), /unsafe state/); });
 test('verified reconciliation after cancellation cannot resume the cancelled workflow', t => { const f = fixture(t); let s = f.create(); s = f.e.next(s.id, 'owner'); const op = s.active.operation; f.write('ok'); s = f.e.cancel(s.id, 'owner'); assert.equal(s.status, 'cancel-requested'); s = f.e.reconcile(s.id, 'owner', op, 'verified', { operation: op, answer: 'verified', source: 'test-fixture' }); assert.equal(s.status, 'cancelled'); assert.equal(s.receipts.at(-1).recovered, true); assert.throws(() => f.e.next(s.id, 'owner')); });
+
+
+test('option gate validates declared values and records the selected option', t => {
+  const f = fixture(t);
+  f.d.nodes.unshift({ id: 'pick', type: 'gate', question: 'Pick a topic', options: ['综合', 'AI / 大模型'] });
+  let s = f.create();
+  s = f.e.next(s.id, 'owner');
+  assert.equal(s.status, 'waiting-human');
+  assert.throws(() => f.e.decide(s.id, 'owner', s.active.operation, 'not-an-option', { operation: s.active.operation, answer: 'not-an-option' }));
+  s = f.e.decide(s.id, 'owner', s.active.operation, 'AI / 大模型', { operation: s.active.operation, answer: 'AI / 大模型' });
+  assert.equal(s.status, 'ready');
+  assert.equal(s.events.at(-1).answer, 'AI / 大模型');
+  assert.equal(s.definition.nodes[s.index].id, 'write');
+});
+
+test('invalid gate options are rejected at definition time', t => {
+  const f = fixture(t);
+  const bad = { ...f.d, nodes: [{ id: 'g', type: 'gate', question: 'Pick', options: ['dup', 'dup'] }, ...f.d.nodes] };
+  assert.throws(() => f.e.create(bad, 'owner', { answer: 'confirm', definitionHash: digest(bad), source: 'fixture' }));
+  const empty = { ...f.d, nodes: [{ id: 'g', type: 'gate', question: 'Pick', options: [] }, ...f.d.nodes] };
+  assert.throws(() => f.e.create(empty, 'owner', { answer: 'confirm', definitionHash: digest(empty), source: 'fixture' }));
+  const tooMany = { ...f.d, nodes: [{ id: 'g', type: 'gate', question: 'Pick', options: Array.from({ length: 31 }, (_, i) => 'o' + i) }, ...f.d.nodes] };
+  assert.throws(() => f.e.create(tooMany, 'owner', { answer: 'confirm', definitionHash: digest(tooMany), source: 'fixture' }));
+});

@@ -27,13 +27,26 @@ export function validate(def) {
   if (!Array.isArray(def.nodes) || !def.nodes.length || def.nodes.length > 50) fail('invalid nodes');
   const ids = new Set();
   for (const n of def.nodes) {
-    keys(n, ['id', 'type', 'mode', 'instruction', 'proofs', 'question']);
+    keys(n, ['id', 'type', 'mode', 'instruction', 'proofs', 'question', 'options']);
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(n.id) || ids.has(n.id)) fail('invalid/duplicate node id'); ids.add(n.id);
     if (!['task', 'gate', 'check'].includes(n.type)) fail('unsupported node');
     if (n.type === 'task') { if (!['agent', 'script'].includes(n.mode)) fail('invalid task mode'); text(n.instruction, 'instruction'); }
     else if (n.mode !== undefined || n.instruction !== undefined) fail('inapplicable task fields');
-    if (n.type === 'gate') { text(n.question, 'question'); if (n.proofs !== undefined) fail('gate cannot declare proofs'); }
-    else { if (n.question !== undefined) fail('inapplicable question'); if (!Array.isArray(n.proofs) || !n.proofs.length) fail('proofs required'); n.proofs.forEach(proofSpec); }
+    if (n.type === 'gate') {
+      text(n.question, 'question');
+      if (n.proofs !== undefined) fail('gate cannot declare proofs');
+      if (n.options !== undefined) {
+        if (!Array.isArray(n.options) || !n.options.length || n.options.length > 30) fail('invalid gate options');
+        const seen = new Set();
+        for (const option of n.options) {
+          text(option, 'gate option');
+          if (option.length > 200) fail('gate option too long');
+          if (seen.has(option)) fail('duplicate gate option');
+          seen.add(option);
+        }
+      }
+    }
+    else { if (n.question !== undefined) fail('inapplicable question'); if (n.options !== undefined) fail('inapplicable gate options'); if (!Array.isArray(n.proofs) || !n.proofs.length) fail('proofs required'); n.proofs.forEach(proofSpec); }
   }
   if (!Array.isArray(def.deliveries) || !def.deliveries.length) fail('deliveries required'); def.deliveries.forEach(proofSpec);
   if (def.references !== undefined) {
@@ -125,9 +138,16 @@ export class Orchestrator {
   }
   decide(id, owner, operation, answer, human) {
     return this.transaction(id, owner, s => {
-      if (s.status !== 'waiting-human' || s.active?.operation !== operation || human?.operation !== operation || !['confirm', 'reject'].includes(answer) || human.answer !== answer) fail('human gate decision required');
+      const node = s.definition.nodes[s.index];
+      const choices = Array.isArray(node?.options) ? node.options : ['confirm', 'reject'];
+      if (s.status !== 'waiting-human' || s.active?.operation !== operation || human?.operation !== operation || !choices.includes(answer) || human.answer !== answer) fail('human gate decision required');
       this.event(s, 'human-decision', { node: s.active.node, answer, human: clone(human) });
-      if (answer === 'confirm') { s.index++; s.status = 'ready'; } else s.status = 'cancelled'; s.active = null;
+      if (Array.isArray(node?.options)) {
+        // 多选一门：选中的值记录后继续；只有显式 reject 取消（兼容审批式用法）。
+        if (answer === 'reject') s.status = 'cancelled';
+        else { s.index++; s.status = 'ready'; }
+      } else if (answer === 'confirm') { s.index++; s.status = 'ready'; } else s.status = 'cancelled';
+      s.active = null;
     });
   }
   pause(id, owner) { return this.transaction(id, owner, s => { if (!['ready', 'waiting-action', 'waiting-human'].includes(s.status)) fail('cannot pause'); s.pausedFrom = s.status; s.status = 'paused'; this.event(s, 'paused'); }); }

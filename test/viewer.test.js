@@ -61,6 +61,23 @@ function buildFixtures(workspace) {
   // HTML escaping fixture: model/user supplied text must not inject tags
   const tricky = createRun(workspace, def({ name: '转义测试', intent: '<script>alert(1)</script> & "quote"' }));
   runMap.tricky = tricky.id;
+
+  // Registered pipeline definitions (read-only display; running still goes through the Harness session).
+  const registry = path.join(workspace, 'pipelines');
+  fs.mkdirSync(registry, { recursive: true });
+  fs.writeFileSync(
+    path.join(registry, 'valid-pipeline.json'),
+    JSON.stringify(def({ name: '已登记演示管线', intent: '用于看板登记列表的演示定义' }), null, 2)
+  );
+  fs.writeFileSync(path.join(registry, 'bad-pipeline.json'), '{"version":1}');
+
+  // Delivered outputs (read-only listing/serving) plus one symlink that must be refused.
+  const outputDir = path.join(workspace, 'output');
+  fs.mkdirSync(path.join(outputDir, 'nested'), { recursive: true });
+  fs.writeFileSync(path.join(outputDir, 'report.md'), '# demo report\n\n<!-- NEWS_REPORT_COMPLETE:1:180 -->\n');
+  fs.writeFileSync(path.join(outputDir, 'report.html'), '<html><body>demo</body></html>\n');
+  fs.writeFileSync(path.join(outputDir, 'nested', 'receipt.json'), '{"quality": "full"}\n');
+  fs.symlinkSync('/etc/hosts', path.join(outputDir, 'escape.txt'));
   return runMap;
 }
 
@@ -170,6 +187,47 @@ test('api/runs returns summaries in real time shape', async () => {
     assert.equal(typeof run.needsAttention, 'boolean');
   }
   assert.ok(body.warnings.some(w => w.includes('not-a-run.json')));
+});
+
+test('pipeline registry shows registered definitions and skips invalid ones', async () => {
+  const list = await fetch(`${origin}/api/runs`, { headers: withToken() }).then(r => r.json());
+  assert.equal(list.pipelines.length, 1);
+  const entry = list.pipelines[0];
+  assert.equal(entry.name, '已登记演示管线');
+  assert.equal(entry.intent, '用于看板登记列表的演示定义');
+  assert.equal(entry.nodes, 1);
+  assert.equal(entry.deliveries, 1);
+  assert.equal(entry.file, 'pipelines/valid-pipeline.json');
+  assert.equal(entry.definition.name, '已登记演示管线');
+  assert.ok(list.pipelineWarnings.some(w => w.includes('bad-pipeline.json')));
+
+  const page = await fetch(`${origin}/?token=${encodeURIComponent(viewer.token)}`).then(r => r.text());
+  assert.ok(page.includes('已登记演示管线'));
+  assert.ok(page.includes('pipelines/valid-pipeline.json'));
+  assert.ok(page.includes('"pipelines"'));
+});
+
+test('outputs are listed read-only and served only from output/', async () => {
+  const list = await fetch(`${origin}/api/runs`, { headers: withToken() }).then(r => r.json());
+  const paths = list.outputs.map(f => f.path).sort();
+  assert.deepEqual(paths, ['output/nested/receipt.json', 'output/report.html', 'output/report.md']);
+  assert.ok(list.outputWarnings.some(w => w.includes('escape.txt')));
+
+  const served = await fetch(`${origin}/api/outputs/content?path=${encodeURIComponent('output/report.md')}`, { headers: withToken() });
+  assert.equal(served.status, 200);
+  assert.match(served.headers.get('content-type'), /text\/plain/);
+  assert.match(await served.text(), /NEWS_REPORT_COMPLETE/);
+
+  const html = await fetch(`${origin}/api/outputs/content?path=${encodeURIComponent('output/report.html')}`, { headers: withToken() });
+  assert.equal(html.status, 200);
+  assert.match(html.headers.get('content-security-policy'), /sandbox/);
+
+  for (const bad of ['output/../AGENT.md', '../AGENT.md', '/etc/hosts', 'AGENT.md', 'output/escape.txt']) {
+    const response = await fetch(`${origin}/api/outputs/content?path=${encodeURIComponent(bad)}`, { headers: withToken() });
+    assert.ok([400, 409, 404].includes(response.status), `${bad} -> ${response.status}`);
+  }
+  const noToken = await fetch(`${origin}/api/outputs/content?path=${encodeURIComponent('output/report.md')}`);
+  assert.equal(noToken.status, 403);
 });
 
 test('run detail verifies current artifact bytes against the receipt', async () => {

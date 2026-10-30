@@ -20,3 +20,19 @@ test('plugin full mixed lifecycle with evidence, gate and final delivery', async
 test('plugin refuses missing caller and cross-session status', async t => { const f = fixture(t); await assert.rejects(f.call('orch_create', { definition: f.def }, { signal: f.exec.signal })); const s = await f.call('orch_create', { definition: f.def }); await assert.rejects(f.call('orch_status', { run: s.id }, { ...f.exec, agent: { session: { id: 'other' } } })); });
 test('plugin unload aborts outstanding wait without accepting candidate', async t => { const f = fixture(t); f.set('wait'); const pending = f.call('orch_create', { definition: f.def }); f.dispose(); await assert.rejects(pending); await assert.rejects(f.call('orch_create', { definition: f.def }), /unloaded/); assert.equal(fs.existsSync(path.join(f.root, '.orchestrator')), false); });
 test('no answer at human gate leaves pending gate and original operation', async t => { const f = fixture(t); f.def.nodes = [{ id: 'gate', type: 'gate', question: 'Continue?' }]; let s = await f.call('orch_create', { definition: f.def }); s = await f.call('orch_next', { run: s.id }); f.set('none'); await assert.rejects(f.call('orch_gate', { run: s.id })); const after = await f.call('orch_status', { run: s.id }); assert.equal(after.status, 'waiting-human'); assert.equal(after.active.operation, s.active.operation); });
+
+
+test('plugin gate asks the host with declared options and records the selected option', async t => {
+  const f = fixture(t);
+  f.def.nodes = [{ id: 'pick', type: 'gate', question: 'Pick a topic', options: ['综合', 'AI / 大模型'] }];
+  let s = await f.call('orch_create', { definition: f.def });
+  s = await f.call('orch_next', { run: s.id });
+  assert.equal(s.status, 'waiting-human');
+  f.set('AI / 大模型');
+  s = await f.call('orch_gate', { run: s.id });
+  const question = f.asked.at(-1).questions[0];
+  assert.deepEqual(question.options.map(o => o.label), ['综合', 'AI / 大模型']);
+  assert.equal(s.status, 'ready');
+  assert.equal(s.events.at(-1).type, 'human-decision');
+  assert.equal(s.events.at(-1).answer, 'AI / 大模型');
+});

@@ -7,8 +7,8 @@
 
 ## 结果
 
-- 看板专项测试 **14/14**（[TAP](node-tests-viewer.tap)）：令牌/转义/只读/SSE/调度状态机/安全头/CLI。
-- 全量测试 **43/43**（29 项原有 + 14 项看板）。
+- 看板专项测试 **15/15**（[TAP](node-tests-viewer.tap)）：令牌/转义/只读/SSE/调度状态机/安全头/CLI。
+- 全量测试 **44/44**（29 项原有 + 15 项看板）。
 - 真实浏览器点击「启动」：`看板演示：等待启动` 从 `ready` → `waiting-action`，页面显示 `action-issued` 与工作单 `76202929-2229-4eac-8d94-40e5301b9e8a`（[UI 截图](ui/03-after-start.jpg) · [状态快照](after-start-state.json)）。
 - 真实验收工作区（6 个运行，含取消/人工门/交付已核验）只读展示，未点击任何动作（[截图](ui/04-acceptance-real-runs.jpg)）。
 
@@ -20,7 +20,7 @@
 - `ui/04-acceptance-real-runs.jpg`：只读模式查看 2026-10-30 真实验收工作区的 6 个运行（未操作）。
 - `after-start-state.json`：点击启动后的 `/api/runs` 快照（路径已脱敏）。
 - `demo-page-text.txt` / `demo-after-start-page-text.txt` / `acceptance-page-text.txt`：页面文本证据。
-- `node-tests-viewer.tap`：看板测试 TAP（14 项：令牌/转义/只读/SSE/调度/损坏快照跳过/符号链接目录拒绝/遗留锁/直接入口回归）。
+- `node-tests-viewer.tap`：看板测试 TAP（15 项：令牌/转义/只读/SSE/调度/损坏快照跳过/符号链接目录拒绝/遗留锁/直接入口回归/已登记管线列表）。
 - `viewer-demo-process.log`：启动输出（URL 与模式）。
 - `capture.mjs`：截图/点击操作脚本（Chrome DevTools Protocol；不含凭据）。
 - `MANIFEST.sha256`：本目录除自身外全部文件哈希。
