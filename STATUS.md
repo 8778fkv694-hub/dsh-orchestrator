@@ -4,7 +4,7 @@
 
 2026-10-30 追加落地复核（INTENT-007，机主确认）：当前源码完整回归 **54/54**，装机 Harness tools **0.2.1-rc.5** 正向/反例探针通过（合成 Agent/答复、0 模型调用）；真实 Harness 侧栏验证启动/暂停/继续/取消及输出物刷新/关闭。修复四项：原生确认框无反馈、刷新按钮变量遮蔽、探针对结构化展示不兼容（含拒绝回执缺 JSON）、自动跟随重开已关闭预览。见[复核计划与闭环](docs/sdlc/test/implementation-audit-2026-10-30.md)、[证据](docs/evidence/2026-10-30-implementation-audit/README.md)。
 
-2026-10-30 追加（INTENT-009 执行体验闭环）：源码完整回归 **64/64**；新增 `orch_claim`、只读 `orch doctor`、`orch instantiate` 模板与运行隔离、看板接手/卡点详情；装机夹具探针 11 工具/7 调用（合成 Agent/答复、0 模型调用）；新闻采集收尾行在 UTF-8 locale 下的未绑定变量缺陷已修复，以 24 例离线回归（0 网络/0 真实新闻运行）和真实新闻复测验证；news-briefing 一次真实端到端运行 `ee8e7255-…` 最终 **done**，`output/report.md|html|delivery.json` 与回执哈希一致、`--verify` 通过。**边界：**新工具与修复仍未安装到现用 Harness profile、未发布、未推送；自动派发与深链仍未验；新闻事实准确性未逐条核查。
+2026-10-30 追加（INTENT-009 执行体验闭环）：源码完整回归 **64/64**；新增 `orch_claim`、只读 `orch doctor`、`orch instantiate` 模板与运行隔离、看板接手/卡点详情；装机夹具探针 11 工具/7 调用（合成 Agent/答复、0 模型调用）；新闻采集收尾行在 UTF-8 locale 下的未绑定变量缺陷已修复，以 24 例离线回归（0 网络/0 真实新闻运行）和真实新闻复测验证；news-briefing 一次真实端到端运行 `ee8e7255-…` 最终 **done**，`output/report.md|html|delivery.json` 与回执哈希一致、`--verify` 通过。**边界：**新工具与修复尚未安装到现用 Harness profile；源码提交 `088b718` 已推送公开仓库 `main`（未发布 npm 包——名称被占用；未创建 tag/Release）；可安装包由 `npm pack` 两次生成、字节可复现（sha256 `a7e8c4d60f43e668…`，129 文件），packaged CLI `doctor` 通过；自动派发与深链仍未验；新闻事实准确性未逐条核查。
 
 **落地边界：新闻项目为 1 管线；2026-10-30 完成 1 次真实端到端运行并交付 3 个输出物（WP7 本轮业务验收通过，新闻事实未逐条核查）；WP10 的 200/50/200 规模验收仍未完成。** 本轮源码已修复并验证，但不代表已重装现用插件；未发布、未改现用 profile。下文“整体目标达成”仅指此前声明的 alpha 验收范围。
 
