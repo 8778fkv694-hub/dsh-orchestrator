@@ -6,6 +6,23 @@
 
 **当前为开发预览。** 核心与插件适配已具备可运行代码。真实模型与真实界面的三个主要场景已在 `66d252f` 验证；修复提交 `67e0f7c`（取消后对账修复）上追加的真实界面反例（拒绝、无答案、缺交付、在途取消、对账 verified 回归、人工门拒绝）已通过。三条主要场景未在修复提交后重跑、确认卡为受托验收操作者代点等边界见[当前状态](STATUS.md)和[验证记录](docs/sdlc/test/verification.md)。
 
+## 界面截图
+
+看板（`orch view`）开发预览：总览、运行记录、输出物与运行详情抽屉。截图使用隔离演示工作区（8 个运行、1 条登记管线、6 个输出物，合成数据，不是真实新闻）；完整尺寸、窄屏与说明见[看板 v4 证据](docs/evidence/2026-10-30-dashboard-v4/README.md)。
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/01-overview.jpg" alt="看板总览：状态指标、管线库与按状态分组的运行卡片"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/04-detail.jpg" alt="运行详情抽屉：步骤流、证据、交付项与等待决定指引"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/02-records.jpg" alt="运行记录：状态筛选、进度、收据、耗时与导出"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/03-outputs.jpg" alt="输出物：只读列出交付文件并可打开/复制路径"></td>
+  </tr>
+</table>
+
+看板是可观察、可筛选、可调度的只读管理面；意图确认、人工门与对账仍在 Harness 会话内由人完成。
+
 ## 方法
 
 - 人的话是原始输入；AI引导梳理并复述，经人确认才建立正式Intent。

@@ -6,6 +6,23 @@ Turn confirmed intent into observable, verifiable, recoverable pipelines. A host
 
 **Developer preview.** Runnable core and adapter code exists. Three primary real-model GUI scenarios passed on `66d252f`; on `67e0f7c` (cancellation-reconciliation fix) an additional real-GUI adverse suite passed (intent reject, no-answer skip, missing delivery, in-flight cancel, verified-after-cancel regression, gate reject). The three primary scenarios were not re-run on the fixed commit, and the cards were clicked by an authorized acceptance operator rather than the owner; see [status](STATUS.md) and [verification](docs/sdlc/test/verification.md).
 
+## Screenshots
+
+Developer preview of the `orch view` dashboard: overview, run records, delivered outputs and the run detail drawer. Screenshots use an isolated demo workspace (8 runs, 1 registered pipeline, 6 outputs; synthetic data, not real news). Full-size, narrow-layout and notes: [dashboard v4 evidence](docs/evidence/2026-10-30-dashboard-v4/README.md).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/01-overview.jpg" alt="Dashboard overview: status metrics, pipeline library and runs grouped by status"></td>
+    <td width="50%"><img src="docs/evidence/2026-10-30-dashboard-v4/ui/04-detail.jpg" alt="Run detail drawer: step flow, evidence, deliveries and the waiting-for-you guidance"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/02-records.jpg" alt="Run records: status filters, progress, receipts, duration and JSON export"></td>
+    <td><img src="docs/evidence/2026-10-30-dashboard-v4/ui/03-outputs.jpg" alt="Outputs: read-only delivered files with open/copy path"></td>
+  </tr>
+</table>
+
+The dashboard is a read-only management surface for observing, filtering and scheduling; intent confirmation, human gates and reconciliation stay in the Harness session with the person.
+
 ## Principles
 
 Human words are input. AI clarifies and restates a candidate; only human confirmation establishes formal Intent. Runs pin definition snapshots. The host retains control of tool execution and permissions. The `harness.userQuestions` source proves routing through the question channel, not who physically clicked; use additional identity and audit controls when delegated actions must be distinguished. Persist action IDs before dispatch, inspect unknown effects before recovery, and verify declared artifacts independently of model completion claims.
