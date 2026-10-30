@@ -23,3 +23,9 @@
 
 
 2026-10-30 追加收据（WP6 / INTENT-002）：`orch view` 实现完成——只读运行视图 + SSE 实时状态 + `next/pause/resume/cancel` 调度（只发工作单，不执行外部动作）；令牌/Origin/Host/只读开关/转义/SSE 测试 14/14，全量 43/43；真实浏览器点击「启动」验证 `ready → waiting-action`；证据见 `docs/evidence/2026-10-30-viewer/`。未调用模型、未改 Harness 配置。
+
+## 追加工作包（INTENT-003，2026-10-30）
+
+预算：1 次真实端到端运行；不推送外部、不建定时、不构建安装包；真实模型按 DSH Desktop 当前线路计费；停止线为“任一步与预期不符即停、如实报告、不重试凑通过”。
+
+- [ ] WP7：真实项目试跑——建立 `news-briefing` 独立项目（起飞骨架 + 移植采集层 + 管线模板/脚本）、DSH Desktop 工作区与插件 workspace 指向项目、机主完成四项偏好与两个人工门、产出并核验 Markdown/HTML/回执、归档证据与未验边界。

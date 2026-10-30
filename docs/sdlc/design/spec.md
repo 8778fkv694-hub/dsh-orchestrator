@@ -1,6 +1,6 @@
-# SPEC-001 v2 · 工程契约
+# SPEC-001 v3 · 工程契约
 
-依据：INTENT-001 v1 accepted、[INTENT-002 v1](../plan/intent-002-viewer.md) accepted（2026-10-30，本地看板与调度入口）。状态：实施设计基线；2026-10-30。实现验收与边界见[验证记录](../test/verification.md)与[STATUS](../../../STATUS.md)；本文不声称覆盖范围外能力。
+依据：INTENT-001 v1 accepted、[INTENT-002 v1](../plan/intent-002-viewer.md) accepted（本地看板与调度入口）、[INTENT-003 v1](../plan/intent-003-news-pilot.md) accepted（2026-10-30，真实项目试跑）。状态：实施设计基线；2026-10-30。实现验收与边界见[验证记录](../test/verification.md)与[STATUS](../../../STATUS.md)；本文不声称覆盖范围外能力。
 
 ## 人能读懂的要求
 
@@ -39,3 +39,13 @@
 | S16 | CLI 与包接口：`orch view` 与 `npm run view`；`--port`（默认 0 自动分配）、`--host` 仅允许本机地址、`--read-only`、`--token`（显式指定时至少 16 字符）；启动打印 URL 与只读状态；退出释放监听与监听器 | CLI 测试；命令输出截图/记录 |
 
 v2 不改变 S1–S10：Intent 确认、人工门、对账、交付核验仍只在 Harness 会话内完成；看板不执行任务动作，不创建运行。
+
+
+## v3 增量：真实项目试跑（INTENT-003）
+
+| ID | 行为与边界 | 验收证据 |
+|---|---|---|
+| S17 | 试跑项目独立于公开仓库：起飞式骨架（AGENT/STATUS + 六阶段 docs）+ 本地 git；订阅配置/产物/状态目录不进 git；数字员工仓库与生产数据不改动 | 项目目录与 `.gitignore`；数字员工仓库 git 状态无新增改动 |
+| S18 | 移植保真与适配如实记录：确定性采集/评分/摘要/HTML/回执代码带出处；多选一人工门以 `ask_user_question` + 二元门适配；变量/动态命名以稳定交付路径 + `output/history/` 适配；写稿从“无工具直出”改为 Agent 读写项目文件、仍禁联网搜索 | 项目 SPEC 的适配表；管线定义与执行记录 |
+| S19 | 一次真实端到端：人工四项偏好由机主选择、两处二元门由机主点击；实时抓取（失败如实降级）；Markdown/HTML/回执三件套逐项核验；`--verify` 哈希复验通过（或如实记录失败停止点） | 运行记录（runId、事件、门决策、sha256、verify.log、步数/耗时） |
+| S20 | 底座缺口登记：多选一人工门、定义变量替换、动态交付命名在试跑中只记录到项目 Spec/本仓问题台账；未获单独授权不改 `src/core.js`/`src/plugin.js` | 试跑报告与 git diff（内核无改动） |
