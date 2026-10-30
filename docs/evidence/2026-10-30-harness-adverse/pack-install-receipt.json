@@ -1,0 +1,23 @@
+{
+  "layer": "npm pack + isolated DSH_HOME plugin add / compose / remove",
+  "date": "2026-10-30",
+  "package": {
+    "file": "dsh-orchestrator-0.1.0-alpha.1.tgz",
+    "version": "0.1.0-alpha.1",
+    "bytes": 26024,
+    "sha256": "735236398884813a234ede12637ccef83f6b276f9c27a9a7017782965b23e2e5",
+    "source": "rebuilt with `npm pack` from HEAD 67e0f7c; npm pack output is byte-identical to the tarball installed for the real-UI run"
+  },
+  "commands": [
+    "npm pack --pack-destination <tmp>",
+    "DSH_HOME=<tmp-home> dsh plugin --profile receipt add <tgz>",
+    "DSH_HOME=<tmp-home> dsh --profile receipt --dump-config | grep evidence-orchestrator",
+    "DSH_HOME=<tmp-home> dsh plugin --profile receipt remove dsh-orchestrator"
+  ],
+  "observed": {
+    "add": "installed dsh-orchestrator 0.1.0-alpha.1",
+    "composedConfigContainsEvidenceOrchestrator": true,
+    "remove": "removed dependency dsh-orchestrator; manifest no longer contains it"
+  },
+  "boundary": "This receipt proves pack/install/compose/remove in a throwaway DSH_HOME. It is not a GUI-level uninstall test and does not touch the user profile."
+}

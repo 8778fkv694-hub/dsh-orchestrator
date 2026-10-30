@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "d22435bf-acd9-4282-9372-3933d932e313",
+  "owner": "session-93b5d207-5f4f-41d8-9d0b-8ec4259c0921",
+  "revision": 3,
+  "definition": {
+    "version": 1,
+    "name": "验收：缺交付不得推进",
+    "intent": "隔离验收：任务声明产出 missing.txt，但执行者故意不生成；提交验收应失败，随后取消并核对停止，且不得重发。",
+    "nodes": [
+      {
+        "id": "missing",
+        "type": "task",
+        "mode": "agent",
+        "instruction": "不要创建任何文件；此节点用于验证缺少交付时 complete 必须失败",
+        "proofs": [
+          {
+            "path": "missing.txt",
+            "contains": "missing-ready"
+          }
+        ]
+      }
+    ],
+    "deliveries": [
+      {
+        "path": "missing.txt",
+        "contains": "missing-ready"
+      }
+    ]
+  },
+  "definitionHash": "619981bf8e2e95a5e075088372cc1fbc27c3995db48730cbb09ae554af929cfc",
+  "references": {},
+  "confirmation": {
+    "operation": "619981bf8e2e95a5e075088372cc1fbc27c3995db48730cbb09ae554af929cfc",
+    "answer": "confirm",
+    "at": "2026-10-29T23:32:55.006Z",
+    "source": "harness.userQuestions",
+    "question": "候选意图 / Candidate Intent:\n隔离验收：任务声明产出 missing.txt，但执行者故意不生成；提交验收应失败，随后取消并核对停止，且不得重发。\n\n管线步骤、验收和关联资料 / Steps, criteria and references:\n{\n  \"version\": 1,\n  \"name\": \"验收：缺交付不得推进\",\n  \"intent\": \"隔离验收：任务声明产出 missing.txt，但执行者故意不生成；提交验收应失败，随后取消并核对停止，且不得重发。\",\n  \"nodes\": [\n    {\n      \"id\": \"missing\",\n      \"type\": \"task\",\n      \"mode\": \"agent\",\n      \"instruction\": \"不要创建任何文件；此节点用于验证缺少交付时 complete 必须失败\",\n      \"proofs\": [\n        {\n          \"path\": \"missing.txt\",\n          \"contains\": \"missing-ready\"\n        }\n      ]\n    }\n  ],\n  \"deliveries\": [\n    {\n      \"path\": \"missing.txt\",\n      \"contains\": \"missing-ready\"\n    }\n  ]\n}\n\n这是否准确表达您的意思？确认只纳入本版本，不代替操作权限。",
+    "reply": {
+      "id": "orch-619981bf8e2e95a5e075088372cc1fbc27c3995db48730cbb09ae554af929cfc",
+      "selected": [
+        "confirm"
+      ]
+    },
+    "definitionHash": "619981bf8e2e95a5e075088372cc1fbc27c3995db48730cbb09ae554af929cfc"
+  },
+  "status": "cancelled",
+  "index": 0,
+  "active": null,
+  "receipts": [],
+  "events": [
+    {
+      "at": "2026-10-29T23:32:55.006Z",
+      "type": "created"
+    },
+    {
+      "at": "2026-10-29T23:32:57.381Z",
+      "type": "action-issued",
+      "operation": "46ccbd09-5b26-4460-a0ff-daca1c2b9cb3",
+      "node": "missing"
+    },
+    {
+      "at": "2026-10-29T23:33:03.329Z",
+      "type": "cancel-requested",
+      "effect": "unknown: external action may still be running"
+    },
+    {
+      "at": "2026-10-29T23:33:06.289Z",
+      "type": "human-reconciled",
+      "operation": "46ccbd09-5b26-4460-a0ff-daca1c2b9cb3",
+      "decision": "stopped",
+      "human": {
+        "operation": "46ccbd09-5b26-4460-a0ff-daca1c2b9cb3",
+        "answer": "stopped",
+        "at": "2026-10-29T23:33:06.289Z",
+        "source": "harness.userQuestions",
+        "question": "请先核对执行端和产物。原操作 46ccbd09-5b26-4460-a0ff-daca1c2b9cb3：verified表示产物已产生且执行已结束；stopped表示已确认执行停止。没有证据请关闭问题，保持未知。",
+        "reply": {
+          "id": "orch-46ccbd09-5b26-4460-a0ff-daca1c2b9cb3",
+          "selected": [
+            "stopped"
+          ]
+        }
+      }
+    }
+  ],
+  "deliveryBaseline": [
+    {
+      "path": "missing.txt",
+      "sha256": null
+    }
+  ]
+}

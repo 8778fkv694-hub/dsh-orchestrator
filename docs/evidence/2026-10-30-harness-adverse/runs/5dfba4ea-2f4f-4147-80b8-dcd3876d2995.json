@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "5dfba4ea-2f4f-4147-80b8-dcd3876d2995",
+  "owner": "session-93b5d207-5f4f-41d8-9d0b-8ec4259c0921",
+  "revision": 2,
+  "definition": {
+    "version": 1,
+    "name": "验收：人工门拒绝",
+    "intent": "隔离验收：管线只有一道人工门；确认创建后，由验收操作者在门上选择 reject，运行应取消。",
+    "nodes": [
+      {
+        "id": "gate",
+        "type": "gate",
+        "question": "隔离验收门：是否放行？此门仅用于拒绝反例。"
+      }
+    ],
+    "deliveries": [
+      {
+        "path": "never-gate.txt",
+        "contains": "never"
+      }
+    ]
+  },
+  "definitionHash": "b046170ab602758534b6120358f26f949926344f203c08e1e1f71b17d9d369a6",
+  "references": {},
+  "confirmation": {
+    "operation": "b046170ab602758534b6120358f26f949926344f203c08e1e1f71b17d9d369a6",
+    "answer": "confirm",
+    "at": "2026-10-29T23:33:34.224Z",
+    "source": "harness.userQuestions",
+    "question": "候选意图 / Candidate Intent:\n隔离验收：管线只有一道人工门；确认创建后，由验收操作者在门上选择 reject，运行应取消。\n\n管线步骤、验收和关联资料 / Steps, criteria and references:\n{\n  \"version\": 1,\n  \"name\": \"验收：人工门拒绝\",\n  \"intent\": \"隔离验收：管线只有一道人工门；确认创建后，由验收操作者在门上选择 reject，运行应取消。\",\n  \"nodes\": [\n    {\n      \"id\": \"gate\",\n      \"type\": \"gate\",\n      \"question\": \"隔离验收门：是否放行？此门仅用于拒绝反例。\"\n    }\n  ],\n  \"deliveries\": [\n    {\n      \"path\": \"never-gate.txt\",\n      \"contains\": \"never\"\n    }\n  ]\n}\n\n这是否准确表达您的意思？确认只纳入本版本，不代替操作权限。",
+    "reply": {
+      "id": "orch-b046170ab602758534b6120358f26f949926344f203c08e1e1f71b17d9d369a6",
+      "selected": [
+        "confirm"
+      ]
+    },
+    "definitionHash": "b046170ab602758534b6120358f26f949926344f203c08e1e1f71b17d9d369a6"
+  },
+  "status": "cancelled",
+  "index": 0,
+  "active": null,
+  "receipts": [],
+  "events": [
+    {
+      "at": "2026-10-29T23:33:34.224Z",
+      "type": "created"
+    },
+    {
+      "at": "2026-10-29T23:33:36.635Z",
+      "type": "gate",
+      "operation": "e0d679c7-51ee-4b54-bb37-07b748c9aa65",
+      "node": "gate"
+    },
+    {
+      "at": "2026-10-29T23:33:39.976Z",
+      "type": "human-decision",
+      "node": "gate",
+      "answer": "reject",
+      "human": {
+        "operation": "e0d679c7-51ee-4b54-bb37-07b748c9aa65",
+        "answer": "reject",
+        "at": "2026-10-29T23:33:39.976Z",
+        "source": "harness.userQuestions",
+        "question": "隔离验收门：是否放行？此门仅用于拒绝反例。",
+        "reply": {
+          "id": "orch-e0d679c7-51ee-4b54-bb37-07b748c9aa65",
+          "selected": [
+            "reject"
+          ]
+        }
+      }
+    }
+  ],
+  "deliveryBaseline": [
+    {
+      "path": "never-gate.txt",
+      "sha256": null
+    }
+  ]
+}

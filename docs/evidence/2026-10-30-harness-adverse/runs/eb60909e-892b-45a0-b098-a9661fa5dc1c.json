@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "id": "eb60909e-892b-45a0-b098-a9661fa5dc1c",
+  "owner": "session-93b5d207-5f4f-41d8-9d0b-8ec4259c0921",
+  "revision": 3,
+  "definition": {
+    "version": 1,
+    "name": "验收：取消后对账已验证仍保持取消",
+    "intent": "隔离验收：动作实际完成（late.txt 存在）但在途时已请求取消；核对 verified 只记录收据，状态必须保持 cancelled 且不得推进。",
+    "nodes": [
+      {
+        "id": "late",
+        "type": "task",
+        "mode": "agent",
+        "instruction": "创建 late.txt，内容 late-ready",
+        "proofs": [
+          {
+            "path": "late.txt",
+            "contains": "late-ready"
+          }
+        ]
+      }
+    ],
+    "deliveries": [
+      {
+        "path": "late.txt",
+        "contains": "late-ready"
+      }
+    ]
+  },
+  "definitionHash": "f0bd97c2980e0d8a9f2a07b9a9bfe382525906c0fb3bd6d17425133acf812554",
+  "references": {},
+  "confirmation": {
+    "operation": "f0bd97c2980e0d8a9f2a07b9a9bfe382525906c0fb3bd6d17425133acf812554",
+    "answer": "confirm",
+    "at": "2026-10-29T23:33:13.090Z",
+    "source": "harness.userQuestions",
+    "question": "候选意图 / Candidate Intent:\n隔离验收：动作实际完成（late.txt 存在）但在途时已请求取消；核对 verified 只记录收据，状态必须保持 cancelled 且不得推进。\n\n管线步骤、验收和关联资料 / Steps, criteria and references:\n{\n  \"version\": 1,\n  \"name\": \"验收：取消后对账已验证仍保持取消\",\n  \"intent\": \"隔离验收：动作实际完成（late.txt 存在）但在途时已请求取消；核对 verified 只记录收据，状态必须保持 cancelled 且不得推进。\",\n  \"nodes\": [\n    {\n      \"id\": \"late\",\n      \"type\": \"task\",\n      \"mode\": \"agent\",\n      \"instruction\": \"创建 late.txt，内容 late-ready\",\n      \"proofs\": [\n        {\n          \"path\": \"late.txt\",\n          \"contains\": \"late-ready\"\n        }\n      ]\n    }\n  ],\n  \"deliveries\": [\n    {\n      \"path\": \"late.txt\",\n      \"contains\": \"late-ready\"\n    }\n  ]\n}\n\n这是否准确表达您的意思？确认只纳入本版本，不代替操作权限。",
+    "reply": {
+      "id": "orch-f0bd97c2980e0d8a9f2a07b9a9bfe382525906c0fb3bd6d17425133acf812554",
+      "selected": [
+        "confirm"
+      ]
+    },
+    "definitionHash": "f0bd97c2980e0d8a9f2a07b9a9bfe382525906c0fb3bd6d17425133acf812554"
+  },
+  "status": "cancelled",
+  "index": 1,
+  "active": null,
+  "receipts": [
+    {
+      "node": "late",
+      "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+      "evidence": [
+        {
+          "path": "late.txt",
+          "sha256": "b35b11e4e6e409a317a955ce3afc105e2b260e12c261aadd0d8b4da1f3830859",
+          "bytes": 10
+        }
+      ],
+      "recovered": true
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-10-29T23:33:13.090Z",
+      "type": "created"
+    },
+    {
+      "at": "2026-10-29T23:33:16.065Z",
+      "type": "action-issued",
+      "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+      "node": "late"
+    },
+    {
+      "at": "2026-10-29T23:33:23.251Z",
+      "type": "cancel-requested",
+      "effect": "unknown: external action may still be running"
+    },
+    {
+      "at": "2026-10-29T23:33:27.458Z",
+      "type": "human-reconciled",
+      "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+      "decision": "verified",
+      "human": {
+        "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+        "answer": "verified",
+        "at": "2026-10-29T23:33:27.457Z",
+        "source": "harness.userQuestions",
+        "question": "请先核对执行端和产物。原操作 2724a65b-b315-4bb7-845a-8d6328949a49：verified表示产物已产生且执行已结束；stopped表示已确认执行停止。没有证据请关闭问题，保持未知。",
+        "reply": {
+          "id": "orch-2724a65b-b315-4bb7-845a-8d6328949a49",
+          "selected": [
+            "verified"
+          ]
+        }
+      }
+    }
+  ],
+  "deliveryBaseline": [
+    {
+      "path": "late.txt",
+      "sha256": null
+    }
+  ]
+}

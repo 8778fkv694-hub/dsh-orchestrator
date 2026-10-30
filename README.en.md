@@ -4,7 +4,7 @@
 
 Turn confirmed intent into observable, verifiable, recoverable pipelines. A host-independent core, delivered first as a DeepSeek Harness plugin.
 
-**Developer preview.** Runnable core and adapter code exists. Three primary real-model GUI scenarios passed; rejection and cancellation paths in the GUI remain to be accepted. See [status](STATUS.md) and [verification](docs/sdlc/test/verification.md).
+**Developer preview.** Runnable core and adapter code exists. Three primary real-model GUI scenarios passed on `66d252f`; on `67e0f7c` (cancellation-reconciliation fix) an additional real-GUI adverse suite passed (intent reject, no-answer skip, missing delivery, in-flight cancel, verified-after-cancel regression, gate reject). The three primary scenarios were not re-run on the fixed commit, and the cards were clicked by an authorized acceptance operator rather than the owner; see [status](STATUS.md) and [verification](docs/sdlc/test/verification.md).
 
 ## Principles
 

@@ -1,0 +1,342 @@
+{
+  "scenario": "real-model-real-UI adverse acceptance on isolated DeepSeek Harness (1 authorized session, <=20 model steps)",
+  "date": "2026-10-30",
+  "plugin": {
+    "name": "dsh-orchestrator",
+    "version": "0.1.0-alpha.1",
+    "sourceCommit": "67e0f7c",
+    "packageSha256": "735236398884813a234ede12637ccef83f6b276f9c27a9a7017782965b23e2e5"
+  },
+  "host": {
+    "app": "DeepSeek Harness",
+    "version": "0.2.1-rc.3",
+    "profile": "orch-acceptance",
+    "dshHome": "<isolated-root>/home",
+    "hostStoppedAfterRun": true
+  },
+  "model": {
+    "provider": "opencode-go",
+    "model": "deepseek-v4.1-flash",
+    "reasoningEffort": "max"
+  },
+  "permission": {
+    "preset": "danger-full-access",
+    "approval": "never",
+    "note": "操作者在发送前经真实界面把隔离会话设为 Full access；会话日志记录 workspace-write -> read-only -> danger-full-access 的缓冲切换，最终 danger-full-access/never。插件与提示词未读取隔离工作区之外的文件。"
+  },
+  "session": {
+    "id": "session-93b5d207-5f4f-41d8-9d0b-8ec4259c0921",
+    "turn": 1,
+    "steps": 18,
+    "budgetLimit": 20,
+    "budgetRejects": 0,
+    "startedAt": "2026-10-30T07:27:42.732000+08:00",
+    "endedAt": "2026-10-30T07:33:46.147000+08:00",
+    "durationMs": 363415,
+    "retryNote": "第 1 步首次模型请求以 \"pi-ai stream idle timeout after 300000ms\"（TIMEOUT）结束；宿主 llm-retry 策略自动重试 1 次（1/5）后同一步完成。仍属同一会话/同一授权任务，步数只计 1 次。",
+    "rawLog": {
+      "path": "<isolated-root>/sessions/--<workspace>--/session-93b5d207-5f4f-41d8-9d0b-8ec4259c0921/session.v4.jsonl.zstd",
+      "sha256": "567ee26156ce195ab067f1e282b5ce31e783f035a6c0bd8c9f3e0e395d6d62da",
+      "decompressedBytes": 195980,
+      "decompressedSha256": "f6a11fcce613121ddfb4a60c0bf9e8afe895e21e88ddc585ca6a7f92a5a1b308",
+      "keptOutsideRepository": true
+    },
+    "sanitizedCopy": "session-evidence.jsonl"
+  },
+  "operator": {
+    "identity": "获机主明确授权的验收操作者 = 本会话 Lead（DeepSeek Harness agent）",
+    "method": "Chrome DevTools Protocol 鼠标/文本事件，点击隔离 Harness 真实界面上的卡片按钮；未使用夹具替代界面",
+    "caveat": "Harness 的 harness.userQuestions 只证明答复经过提问通道，不能证明实际点击者身份；本记录如实标注为受托代点，而非机主本人。"
+  },
+  "environmentNotes": [
+    "隔离 profile 只读引用机主 ~/.dsh/.credentials.yaml（宿主层）以调用现有模型线路，未复制凭据；插件与提示词的读写仅落在 <isolated-root>。",
+    "会话默认工作目录是一个既有的空目录（~/Documents/deepseek-harness/default-workspace）；本套件的全部插件状态与产物写入 <isolated-root>/workspace。"
+  ],
+  "checks": [
+    {
+      "id": "A1-intent-reject",
+      "expectation": "候选项确认卡选择 reject 时返回 accepted:false，且不创建运行",
+      "observed": {
+        "toolResult": "{\"accepted\":false,\"reason\":\"human rejected candidate\"}"
+      },
+      "evidence": [
+        "session seq 32",
+        "ui/01-intent-reject-card.jpg"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "A2-intent-skip-no-answer",
+      "expectation": "同一候选取 skip（无答案）时工具失败，状态不变且不创建运行（无答案≠确认）",
+      "observed": {
+        "toolError": "Error: No unambiguous human decision; state unchanged"
+      },
+      "evidence": [
+        "session seq 37",
+        "ui/02-skip-card.jpg"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "B-missing-delivery",
+      "expectation": "声明产物不存在时 orch_complete 必须失败，运行保持等待执行",
+      "observed": {
+        "completeError": "Error: ENOENT: no such file or directory, lstat '<isolated-root>/workspace/missing.txt'",
+        "statusAfter": "waiting-action"
+      },
+      "evidence": [
+        "run d22435bf…"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "B-cancel-not-stopped",
+      "expectation": "在途取消只进入 cancel-requested，不得声称外部工作已停止",
+      "observed": {
+        "status": "cancel-requested",
+        "eventEffect": "unknown: external action may still be running"
+      },
+      "evidence": [
+        "run d22435bf… events"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "B-reconcile-stopped",
+      "expectation": "对账卡选 stopped 后状态 cancelled；不重发（action-issued 恰 1 次）；不可再推进",
+      "observed": {
+        "status": "cancelled",
+        "actionIssuedCount": 1,
+        "nextError": "Error: cannot advance from cancelled"
+      },
+      "evidence": [
+        "run d22435bf…",
+        "session step 8"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "C-cancel-then-verified-fix",
+      "expectation": "取消后动作实际完成、对账 verified：记录收据但状态仍 cancelled、不可推进（67e0f7c 修复）",
+      "observed": {
+        "status": "cancelled",
+        "index": 1,
+        "receipt": {
+          "node": "late",
+          "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+          "evidence": [
+            {
+              "path": "late.txt",
+              "sha256": "b35b11e4e6e409a317a955ce3afc105e2b260e12c261aadd0d8b4da1f3830859",
+              "bytes": 10
+            }
+          ],
+          "recovered": true
+        },
+        "nextError": "Error: cannot advance from cancelled",
+        "lateTxtSha256": "b35b11e4e6e409a317a955ce3afc105e2b260e12c261aadd0d8b4da1f3830859"
+      },
+      "evidence": [
+        "run eb60909e…",
+        "ui/06-reconcile-verified-card.jpg"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "D-gate-reject",
+      "expectation": "人工门卡选择 reject 后运行取消",
+      "observed": {
+        "status": "cancelled",
+        "humanDecision": "reject"
+      },
+      "evidence": [
+        "run 5dfba4ea…",
+        "ui/08-gate-reject-card.jpg"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "A-no-runs-created",
+      "expectation": "拒绝与跳过两次候选均未创建任何运行记录",
+      "observed": {
+        "runsWithCandidateIntent": 0,
+        "runFilesBefore": 3,
+        "runFilesAfter": 6
+      },
+      "evidence": [
+        "workspace/.orchestrator"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "budget",
+      "expectation": "追加预算：1 个会话、最多 20 个模型步骤",
+      "observed": {
+        "sessions": 1,
+        "steps": 18,
+        "rejects": 0
+      },
+      "evidence": [
+        "budget-excerpt.jsonl"
+      ],
+      "result": "pass"
+    }
+  ],
+  "cards": [
+    {
+      "index": 1,
+      "kind": "intent-create-A-first",
+      "operator": "authorized-acceptance-operator",
+      "decision": "reject",
+      "observedResult": "{\"accepted\":false,\"reason\":\"human rejected candidate\"}；未创建运行",
+      "recordedAt": "2026-10-30T07:32:47.245+08:00",
+      "uiCardOpenedAt": "2026-10-29T23:32:46.903Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/01-intent-reject-card.jpg"
+    },
+    {
+      "index": 2,
+      "kind": "intent-create-A-second",
+      "operator": "authorized-acceptance-operator",
+      "decision": "skip",
+      "observedResult": "Error: No unambiguous human decision; state unchanged；未创建运行",
+      "recordedAt": "2026-10-30T07:32:51.221+08:00",
+      "uiCardOpenedAt": "2026-10-29T23:32:51.208Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/02-skip-card.jpg"
+    },
+    {
+      "index": 3,
+      "kind": "intent-create-B",
+      "operator": "authorized-acceptance-operator",
+      "decision": "confirm",
+      "observedResult": "run d22435bf… status=ready",
+      "recordedAt": "2026-10-29T23:32:55.006Z",
+      "uiCardOpenedAt": "2026-10-29T23:32:54.677Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/03-intent-confirm-b-card.jpg"
+    },
+    {
+      "index": 4,
+      "kind": "reconcile-B",
+      "operator": "authorized-acceptance-operator",
+      "decision": "stopped",
+      "observedResult": "status=cancelled；无重发；next 被拒",
+      "recordedAt": "2026-10-29T23:33:06.289Z",
+      "uiCardOpenedAt": "2026-10-29T23:33:05.946Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/04-reconcile-stopped-card.jpg"
+    },
+    {
+      "index": 5,
+      "kind": "intent-create-C",
+      "operator": "authorized-acceptance-operator",
+      "decision": "confirm",
+      "observedResult": "run eb60909e… status=ready",
+      "recordedAt": "2026-10-29T23:33:13.090Z",
+      "uiCardOpenedAt": "2026-10-29T23:33:12.760Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/05-intent-confirm-c-card.jpg"
+    },
+    {
+      "index": 6,
+      "kind": "reconcile-C",
+      "operator": "authorized-acceptance-operator",
+      "decision": "verified",
+      "observedResult": "收据 recovered:true；status 仍 cancelled（修复）；不可推进",
+      "recordedAt": "2026-10-29T23:33:27.458Z",
+      "uiCardOpenedAt": "2026-10-29T23:33:27.120Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/06-reconcile-verified-card.jpg"
+    },
+    {
+      "index": 7,
+      "kind": "intent-create-D",
+      "operator": "authorized-acceptance-operator",
+      "decision": "confirm",
+      "observedResult": "run 5dfba4ea… status=ready",
+      "recordedAt": "2026-10-29T23:33:34.224Z",
+      "uiCardOpenedAt": "2026-10-29T23:33:33.887Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/07-intent-confirm-d-card.jpg"
+    },
+    {
+      "index": 8,
+      "kind": "gate-D",
+      "operator": "authorized-acceptance-operator",
+      "decision": "reject",
+      "observedResult": "status=cancelled",
+      "recordedAt": "2026-10-29T23:33:39.976Z",
+      "uiCardOpenedAt": "2026-10-29T23:33:39.640Z",
+      "uiCardClosed": true,
+      "screenshot": "ui/08-gate-reject-card.jpg"
+    }
+  ],
+  "runs": {
+    "B-missing-delivery-cancelled": {
+      "runId": "d22435bf-acd9-4282-9372-3933d932e313",
+      "status": "cancelled",
+      "events": [
+        "created",
+        "action-issued",
+        "cancel-requested",
+        "human-reconciled"
+      ],
+      "file": "runs/d22435bf-acd9-4282-9372-3933d932e313.json"
+    },
+    "C-cancel-verified-fix": {
+      "runId": "eb60909e-892b-45a0-b098-a9661fa5dc1c",
+      "status": "cancelled",
+      "index": 1,
+      "events": [
+        "created",
+        "action-issued",
+        "cancel-requested",
+        "human-reconciled"
+      ],
+      "receipts": [
+        {
+          "node": "late",
+          "operation": "2724a65b-b315-4bb7-845a-8d6328949a49",
+          "evidence": [
+            {
+              "path": "late.txt",
+              "sha256": "b35b11e4e6e409a317a955ce3afc105e2b260e12c261aadd0d8b4da1f3830859",
+              "bytes": 10
+            }
+          ],
+          "recovered": true
+        }
+      ],
+      "file": "runs/eb60909e-892b-45a0-b098-a9661fa5dc1c.json"
+    },
+    "D-gate-reject": {
+      "runId": "5dfba4ea-2f4f-4147-80b8-dcd3876d2995",
+      "status": "cancelled",
+      "events": [
+        "created",
+        "gate",
+        "human-decision"
+      ],
+      "file": "runs/5dfba4ea-2f4f-4147-80b8-dcd3876d2995.json"
+    }
+  },
+  "cleanup": {
+    "hostStopped": true,
+    "pluginRemovedFromIsolatedProfile": true,
+    "runRecordsRetained": 6,
+    "userDesktopProfileUntouched": true,
+    "log": "plugin-remove.log",
+    "note": "仅在宿主停止后从隔离 profile 移除测试插件；未在活跃 GUI 内执行热卸载，不能代称活跃 GUI 卸载验证。"
+  },
+  "notCovered": [
+    "三条主要场景（混合/重启恢复/脚本）的真实界面证据运行于 66d252f；修复提交 67e0f7c 后未重跑这三条。修复只改 cancel-requested + verified 分支，该分支已由本套件 C 场景在真实界面覆盖。",
+    "活跃 GUI 内插件热卸载未测；卸载边界证据为已安装运行时卸载夹具 + 宿主停止后的隔离 profile 移除。",
+    "卡片点击者为受托验收操作者，而非机主本人；若验收要求本人点击，需机主再做一次抽验。",
+    "隔离会话使用 Full access 权限档位（与上一轮机主切换后的真实验收一致），不是默认 workspace-write 档位。"
+  ],
+  "provenance": {
+    "isolatedRoot": "<isolated-root> (= /tmp/dsh-orch-e2e-20261030 on the acceptance machine)",
+    "files": "MANIFEST.sha256"
+  }
+}

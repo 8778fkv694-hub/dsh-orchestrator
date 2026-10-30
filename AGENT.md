@@ -16,4 +16,4 @@
 
 ## 命令
 
-Node 22+零依赖ES模块。已运行：`npm test`（28项）、`npm run demo`、`npm pack`。安装运行时验证脚本为`scripts/verify-harness-runtime.cjs`，需目标Harness的Node兼容进程；它不是最终真人端到端。
+Node 22+零依赖ES模块。已运行：`npm test`（29项）、`npm run demo`、`npm pack`。安装运行时验证脚本为`scripts/verify-harness-runtime.cjs`，需目标Harness的Node兼容进程；它不是最终真人端到端。真实模型/界面验收与证据边界见[STATUS](STATUS.md)与[验证记录](docs/sdlc/test/verification.md)。
