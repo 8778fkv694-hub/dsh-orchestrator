@@ -1419,8 +1419,8 @@ header.top{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bot
 .live.off{color:var(--amber)}.live.off .dot{background:var(--amber)}
 .overview{padding:12px 20px 4px}
 .viewBar{display:flex;align-items:center;gap:12px;padding:2px 20px 0}
-.viewTabs{display:inline-flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:2px}
-.viewTabs button{background:0 0;border:0;color:var(--muted);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.viewTabs{display:inline-flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:2px;flex-wrap:nowrap;max-width:100%;overflow-x:auto}
+.viewTabs button{background:0 0;border:0;color:var(--muted);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;white-space:nowrap;flex:0 0 auto;min-width:44px;text-align:center}
 .viewTabs button:hover{color:var(--text)}
 .viewTabs button.active{background:#232a34;color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
 .viewHint{color:var(--dim);font-size:11px;margin-left:auto}
@@ -1594,7 +1594,8 @@ code{font-family:ui-monospace,Menlo,monospace;background:#1b2028;border:1px soli
 @media (max-width:900px){
   body{overflow:auto}
   .viewBar{flex-wrap:wrap;gap:8px}
-  .viewTabs button{padding:5px 9px}
+  .viewTabs{width:100%}
+  .viewTabs button{padding:5px 9px;flex:1 0 auto}
   .viewHint{display:none}
   header.top{flex-wrap:wrap;gap:8px;padding:10px 14px}
   #workspace{max-width:46vw}
