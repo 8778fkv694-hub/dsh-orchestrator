@@ -1,0 +1,22 @@
+# Optional Harness sidebar entry bundle.
+#
+# Installs one Host row that owns the dashboard list and starts one loopback
+# read-only orchestrator viewer per workspace entry (`../src/viewer.js`), plus
+# the browser half (`client.js`) that renders the persistent sidebar entry and
+# its management page.
+#
+# Defaults live in `index.js`: `viewerEntry` resolves to `../src/viewer.js`
+# next to this bundle and `dataFile` to `./data/dashboards.json`. Override them
+# from the profile patch layer when this directory is copied elsewhere:
+#
+#   - id: orch-entry
+#     config:
+#       viewerEntry: /absolute/path/to/src/viewer.js
+#       dataFile: /absolute/path/dashboards.json
+#       dashboards:            # seeds only; the page owns the list afterwards
+#         - label: my project
+#           workspace: /absolute/path/to/project
+#           port: 8893
+- insert:
+    - id: orch-entry
+      name: '@local/orch-entry'

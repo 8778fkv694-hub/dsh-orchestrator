@@ -141,6 +141,21 @@ npm run view -- /绝对路径/工作区      # 同上
 
 看板是**本地可信操作面**（与本机文件权限同一信任级），不是安全边界，也不替代 Harness 的人类确认；未做局域网访问、多用户与账号权限。若调度按钮返回“遗留锁”错误，按上文锁处理流程确认无写入者后手动处理 `<工作区>/.orchestrator/<runId>.json.lock`，看板不会自动删除锁。截图与证据见 [docs/evidence/2026-10-30-viewer](docs/evidence/2026-10-30-viewer/README.md)。
 
+## 可选的 Harness 侧栏入口（`entry/`）
+
+本仓库还带一个**可选**的 DSH profile bundle：在 Harness Web UI 左侧栏「插件」正下方
+放一个常驻「管线」入口，点开是多看板管理页。
+
+- 每个看板可填工作区目录（插件在 Host 进程内启动只读看板；端口留空自动分配、也可自定义）
+  或直接填已有看板地址作外链；可添加多个、随时移除。
+- 「打开看板」在系统浏览器打开该看板；「进入会话」在对应工作区打开会话并预填下一步提示词
+  （不自动发送，人工门仍由人确认）。
+- 看板列表持久化在插件自己的状态文件里；安装/卸载走 DSH Plugin Manager，卸载即关闭
+  由它启动的看板。不修改 DSH 程序、官方包或本仓库的 orchestrator 插件。
+
+安装与配置见 [entry/README.md](entry/README.md)，验证记录见
+[docs/evidence/2026-10-30-entry-integration](docs/evidence/2026-10-30-entry-integration/README.md)。
+
 ## 无模型脚本运行
 
 核心不执行提示词或任意shell。可信应用可以为节点ID提供明确的执行函数，再使用 `dsh-orchestrator/driver` 的 `driveScripts`。示例见 `examples/script-demo.js`；该演示使用标明来源的合成确认夹具，不是实际人的批准记录。恢复时驱动器拒绝重放已有在途动作。

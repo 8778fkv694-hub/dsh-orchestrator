@@ -1,5 +1,7 @@
 # DSH Orchestrator 当前状态
 
+2026-10-30 **可选侧栏入口 `entry/`**：新增不侵入的 DSH profile bundle（左侧栏「管线」常驻入口 + 多看板管理页）。看板可填工作区由 Host 进程内 `startViewer()` 在 `127.0.0.1` 启动（端口留空自动分配，也可自定义；每看板独立令牌），也可只填地址作外链；支持多个看板与页面内增删，列表持久化在插件状态文件；「打开看板」进系统浏览器，「进入会话」在对应工作区开会话并预填下一步提示词（不自动发送）。管理接口 `GET/POST /orch-entry/api/dashboards` 经 `connection.requestRejection` 信任栅栏 + Origin 校验。新增回归 **2 项**，本仓库全量 **66/66**（`node --test test/entry-plugin.test.js`：Host 看板管理/路由加固/增删/清理，Client 入口/页面动作/表单/说明；假 viewer 与 stub 页面运行时，0 模型调用）。真实 desktop profile 安装验证：entry `active`、状态文件生成、`127.0.0.1` 看板 health/页面 200；**多看板页面的视觉与交互验收由机主在应用内确认，本提交不声称已完成**。边界：不改 DSH 程序/官方包；安装/卸载走 Plugin Manager，卸载即关闭由它启动的看板；打包产物未变（`files` 未含 `entry/`）；未改 orchestrator 插件本体；未做局域网/多用户验证。证据：[entry-integration](docs/evidence/2026-10-30-entry-integration/README.md)。
+
 2026-10-30 **INTENT-008 运行状态动效**：已按机主确认实现运行卡片动态条、详情状态带、当前步骤转动环；暂停停止动效、继续恢复，等待人工与终态保持静态明确标志。全量 **55/55**；真实 Harness 内启动/暂停/继续实测，运行两帧目视确认动态变化，operation 不变。动效演示已留在当前侧栏供机主体验，使用独立合成工作区，不执行真实任务。见[意图](docs/sdlc/plan/intent-008-run-motion.md)、[证据](docs/evidence/2026-10-30-run-motion/README.md)。减少动态效果已覆盖元素/伪元素，但未切换系统设置实测。历史服务进程需重启后加载新源码；本轮已使用新进程展示，未改现用 Harness profile，业务验收边界不变。
 
 2026-10-30 追加落地复核（INTENT-007，机主确认）：当前源码完整回归 **54/54**，装机 Harness tools **0.2.1-rc.5** 正向/反例探针通过（合成 Agent/答复、0 模型调用）；真实 Harness 侧栏验证启动/暂停/继续/取消及输出物刷新/关闭。修复四项：原生确认框无反馈、刷新按钮变量遮蔽、探针对结构化展示不兼容（含拒绝回执缺 JSON）、自动跟随重开已关闭预览。见[复核计划与闭环](docs/sdlc/test/implementation-audit-2026-10-30.md)、[证据](docs/evidence/2026-10-30-implementation-audit/README.md)。
